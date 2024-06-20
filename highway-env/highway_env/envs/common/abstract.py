@@ -117,13 +117,17 @@ class AbstractEnv(gym.Env):
             "scaling": 5.5,
             "show_trajectories": False,
             "render_agent": True,
-            "safety_guarantee": True,
+            "safety_guarantee": {
+                "enable": True, 
+                "type": "priority", # "cbf"
+            },
             "offscreen_rendering": os.environ.get("OFFSCREEN_RENDERING", "0") == "1",
             "manual_control": False,
             "real_time_rendering": False,
             "n_step": 5,  # do n step prediction
             "seed": 0,
-            "action_masking": True
+            "action_masking": True,
+            "mixed_traffic": True, # Mixed traffic configuration by default
         }
 
     def seed(self, seeding: int = None) -> List[int]:
@@ -452,10 +456,14 @@ class AbstractEnv(gym.Env):
             raise NotImplementedError("The road and vehicle must be initialized in the environment implementation")
 
         self.steps += 1
-        if self.config["safety_guarantee"]:
-            self.new_action = self.safety_supervisor(action)
-        else:
-            self.new_action = action
+
+
+        self.new_action = action
+        if "safety_guarantee" in self.config and self.config["safety_guarantee"]["enable"]:
+            if self.config["safety_guarantee"]["type"] == "priority":
+                self.new_action = self.safety_supervisor(action)
+            elif self.config["safety_guarantee"]["type"] == "cbf":
+                self.new_action = action
 
         # action is a tuple, e.g., (2, 3, 0, 1)
         self._simulate(self.new_action)
