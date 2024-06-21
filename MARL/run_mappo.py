@@ -1,5 +1,5 @@
 from MAPPO import MAPPO
-from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb
+from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb, get_config_file
 import sys
 sys.path.append("../highway-env")
 
@@ -170,9 +170,11 @@ def evaluate(args):
         model_dir = args.model_dir + '/models/'
     else:
         raise Exception("Sorry, no pretrained models")
-    config_dir = args.model_dir + '/configs/configs_ppo.ini'
+    
+    config_file = get_config_file(args.model_dir + '/configs/')
     config = configparser.ConfigParser()
-    config.read(config_dir)
+    if os.path.exists(config_file):
+        config.read(config_file)
 
     video_dir = args.model_dir + '/eval_videos'
 

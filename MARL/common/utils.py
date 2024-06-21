@@ -4,7 +4,7 @@ from torch.autograd import Variable
 import numpy as np
 from shutil import copy
 import torch.nn as nn
-
+import fnmatch
 
 def entropy(p):
     return -th.sum(p * th.log(p), 1)
@@ -183,3 +183,11 @@ def init_wandb(config, project_name: str, exp_name: str):
             "wandb not available logging parameters in the terminal only."
         )
         return None
+    
+def get_config_file(base_directory):
+    pattern = 'configs_*.ini'
+    
+    for root, _, filenames in os.walk(base_directory):
+        for filename in fnmatch.filter(filenames, pattern):
+            return os.path.join(root, filename)
+    return ''

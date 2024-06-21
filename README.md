@@ -38,11 +38,18 @@ To reproduce, we train the algorithms for 3 random seeds, 0, 2000, 2021. For exa
 to run the seed 0. We can plot the comparison curves with the code: `python common/plot_benchmark_safety.py`
 
 ## Training commands
+
+- To train the MARL-CAV test
+     `python run_mappo.py --config configs/configs_marl-cav-test.ini`
+
 - To train the MARL-CAV
      `python run_mappo.py`
 
 - To train unsafe MARL-CAV
      `python run_mappo.py --config configs/configs_marl-cav-unsafe.ini`
+
+- To evaluate a trained model
+     `python run_mappo.py --option eval --model-dir <results/Jun_21_**_**_**>`
 
 ## Reference
 - [Highway-env](https://github.com/eleurent/highway-env)
