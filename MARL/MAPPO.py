@@ -2,7 +2,7 @@ import torch as th
 from torch import nn
 import configparser
 
-config_dir = 'configs/configs_ppo.ini'
+config_dir = 'configs/configs_marl-cav.ini'
 config = configparser.ConfigParser()
 config.read(config_dir)
 torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')
