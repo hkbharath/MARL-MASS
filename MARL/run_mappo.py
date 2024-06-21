@@ -14,21 +14,16 @@ from datetime import datetime
 
 
 def parse_args():
-    """
-    Description for this experiment:
-        + easy: globalR
-        + seed = 0
-    """
     default_base_dir = "./results/"
-    default_config_dir = 'configs/configs_ppo.ini'
+    default_config = 'configs/configs_marl-cav.ini'
     parser = argparse.ArgumentParser(description=('Train or evaluate policy on RL environment '
                                                   'using mappo'))
     parser.add_argument('--base-dir', type=str, required=False,
                         default=default_base_dir, help="experiment base dir")
     parser.add_argument('--option', type=str, required=False,
                         default='train', help="train or evaluate")
-    parser.add_argument('--config-dir', type=str, required=False,
-                        default=default_config_dir, help="experiment config path")
+    parser.add_argument('--config', type=str, required=False,
+                        default=default_config, help="experiment config path")
     parser.add_argument('--model-dir', type=str, required=False,
                         default='', help="pretrained model path")
     parser.add_argument('--evaluation-seeds', type=str, required=False,
@@ -40,9 +35,9 @@ def parse_args():
 
 def train(args):
     base_dir = args.base_dir
-    config_dir = args.config_dir
+    config_file = args.config
     config = configparser.ConfigParser()
-    config.read(config_dir)
+    config.read(config_file)
 
     # create an experiment folder
     now = datetime.utcnow().strftime("%b_%d_%H_%M_%S")
@@ -91,7 +86,8 @@ def train(args):
     env.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
-
+    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
     env_eval = gym.make('merge-multi-agent-v0')
@@ -106,6 +102,8 @@ def train(args):
     env_eval.config['MERGING_LANE_COST'] = config.getint('ENV_CONFIG', 'MERGING_LANE_COST')
     env_eval.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     env_eval.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
+    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     state_dim = env.n_s
     action_dim = env.n_a
@@ -211,6 +209,8 @@ def evaluate(args):
     env.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
+    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
