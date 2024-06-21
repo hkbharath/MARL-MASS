@@ -102,8 +102,8 @@ def train(args):
     env_eval.config['MERGING_LANE_COST'] = config.getint('ENV_CONFIG', 'MERGING_LANE_COST')
     env_eval.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     env_eval.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
-    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
-    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
+    env_eval.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env_eval.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     state_dim = env.n_s
     action_dim = env.n_a
