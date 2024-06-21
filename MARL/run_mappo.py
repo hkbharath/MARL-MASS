@@ -43,7 +43,7 @@ def train(args):
     now = datetime.utcnow().strftime("%b_%d_%H_%M_%S")
     output_dir = base_dir + now
     dirs = init_dir(output_dir)
-    copy_file_ppo(dirs['configs'])
+    copy_file_ppo(dirs['configs'], configs=config_file)
 
     if os.path.exists(args.model_dir):
         model_dir = args.model_dir
