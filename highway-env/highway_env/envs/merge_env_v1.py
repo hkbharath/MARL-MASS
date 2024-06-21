@@ -177,6 +177,11 @@ class MergeEnv(AbstractEnv):
             else:
                 num_CAV = num_CAV
             num_HDV = np.random.choice(np.arange(3, 6), 1)[0]
+        
+        if not self.config["mixed_traffic"]:
+            num_CAV = num_CAV + num_HDV
+            num_HDV = 0
+        
         self._make_vehicles(num_CAV, num_HDV)
         self.action_is_safe = True
         self.T = int(self.config["duration"] * self.config["policy_frequency"])
@@ -306,7 +311,18 @@ class MergeEnvMARL(MergeEnv):
         })
         return config
 
-
+class MergeEnvMARLUnsafe(MergeEnvMARL):
+    @classmethod
+    def default_config(cls) -> dict:
+        config = super().default_config()
+        config.update({
+            "safety_guarantee": {
+                "enable": False,
+            },
+            "mixed_traffic": False,
+        })
+        return config
+    
 register(
     id='merge-v1',
     entry_point='highway_env.envs:MergeEnv',
@@ -315,4 +331,9 @@ register(
 register(
     id='merge-multi-agent-v0',
     entry_point='highway_env.envs:MergeEnvMARL',
+)
+
+register(
+    id='merge-multi-agent-unsafe-v0',
+    entry_point='highway_env.envs:MergeEnvMARLUnsafe',
 )
