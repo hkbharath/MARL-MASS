@@ -117,10 +117,7 @@ class AbstractEnv(gym.Env):
             "scaling": 5.5,
             "show_trajectories": False,
             "render_agent": True,
-            "safety_guarantee": {
-                "enable": True, 
-                "type": "priority", # "cbf"
-            },
+            "safety_guarantee": "priority", # "none", "cbf"
             "offscreen_rendering": os.environ.get("OFFSCREEN_RENDERING", "0") == "1",
             "manual_control": False,
             "real_time_rendering": False,
@@ -457,13 +454,9 @@ class AbstractEnv(gym.Env):
 
         self.steps += 1
 
-
         self.new_action = action
-        if "safety_guarantee" in self.config and self.config["safety_guarantee"]["enable"]:
-            if self.config["safety_guarantee"]["type"] == "priority":
-                self.new_action = self.safety_supervisor(action)
-            elif self.config["safety_guarantee"]["type"] == "cbf":
-                self.new_action = action
+        if "safety_guarantee" in self.config and self.config["safety_guarantee"] == "priority":
+            self.new_action = self.safety_supervisor(action)
 
         # action is a tuple, e.g., (2, 3, 0, 1)
         self._simulate(self.new_action)

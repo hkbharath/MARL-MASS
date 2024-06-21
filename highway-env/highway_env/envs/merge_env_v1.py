@@ -310,18 +310,6 @@ class MergeEnvMARL(MergeEnv):
             "controlled_vehicles": 4
         })
         return config
-
-class MergeEnvMARLUnsafe(MergeEnvMARL):
-    @classmethod
-    def default_config(cls) -> dict:
-        config = super().default_config()
-        config.update({
-            "safety_guarantee": {
-                "enable": False,
-            },
-            "mixed_traffic": False,
-        })
-        return config
     
 register(
     id='merge-v1',
@@ -331,9 +319,4 @@ register(
 register(
     id='merge-multi-agent-v0',
     entry_point='highway_env.envs:MergeEnvMARL',
-)
-
-register(
-    id='merge-multi-agent-unsafe-v0',
-    entry_point='highway_env.envs:MergeEnvMARLUnsafe',
 )
