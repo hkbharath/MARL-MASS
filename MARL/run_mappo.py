@@ -1,5 +1,5 @@
 from MAPPO import MAPPO
-from common.utils import agg_double_list, copy_file_ppo, init_dir
+from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb
 import sys
 sys.path.append("../highway-env")
 
@@ -111,6 +111,11 @@ def train(args):
     action_dim = env.n_a
     test_seeds = args.evaluation_seeds
 
+    # init wnadb logging
+    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
+    exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback=None)
+    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+
     mappo = MAPPO(env=env, memory_capacity=MEMORY_CAPACITY,
                   state_dim=state_dim, action_dim=action_dim,
                   batch_size=BATCH_SIZE, entropy_reg=ENTROPY_REG,
@@ -134,22 +139,31 @@ def train(args):
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, _, _ = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            rewards, _, _, avg_speed = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
             rewards_mu, rewards_std = agg_double_list(rewards)
             print("Episode %d, Average Reward %.2f" % (mappo.n_episodes + 1, rewards_mu))
             eval_rewards.append(rewards_mu)
+
+            avg_speed_mu, avg_speed_std = agg_double_list(avg_speed)
+            if wandb:
+                wandb.log({"reward": rewards_mu,
+                           "average_speed": avg_speed_mu})
+                
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
 
     # save the model
     mappo.save(dirs['models'], MAX_EPISODES + 2)
 
-    plt.figure()
-    plt.plot(eval_rewards)
-    plt.xlabel("Episode")
-    plt.ylabel("Average Reward")
-    plt.legend(["MAPPO"])
-    plt.show()
+    if wandb:
+        wandb.finish()
+
+    # plt.figure()
+    # plt.plot(eval_rewards)
+    # plt.xlabel("Episode")
+    # plt.ylabel("Average Reward")
+    # plt.legend(["MAPPO"])
+    # plt.show()
 
 
 def evaluate(args):
@@ -197,6 +211,11 @@ def evaluate(args):
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
 
+    # init wnadb logging
+    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
+    exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback="default") + '-evaluation'
+    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+
     assert env.T % ROLL_OUT_N_STEPS == 0
     state_dim = env.n_s
     action_dim = env.n_a
@@ -217,7 +236,13 @@ def evaluate(args):
 
     # load the model if exist
     mappo.load(model_dir, train_mode=False)
-    rewards, _, steps, avg_speeds = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    rewards, _, steps, avg_speeds, crash_percent = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+    rewards_mu, rewards_std = agg_double_list(rewards)
+    if wandb:
+        wandb.log({"reward": rewards_mu,
+                "average_speed": avg_speed_mu})
+        wandb.finish()
 
 
 if __name__ == "__main__":

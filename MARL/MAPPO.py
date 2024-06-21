@@ -138,7 +138,7 @@ class MAPPO:
             self.epoch_steps.append(0)
         else:
             self.episode_done = False
-            final_action = self.action(final_state)
+            final_action = self.action(final_state, self.n_agents)
             final_value = self.value(final_state, final_action)
 
         if self.reward_scale > 0:
