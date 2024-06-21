@@ -106,13 +106,13 @@ def copy_file(tar_dir):
     copy(c3, tar_dir)
 
 
-def copy_file_ppo(tar_dir):
+def copy_file_ppo(tar_dir, configs = None):
     # env = '.highway-env/envs/common/abstract.py'
     # copy(env, tar_dir)
     # env1 = '.highway_env/envs/merge_env_v1.py'
     # copy(env1, tar_dir)
 
-    env2 = 'configs/configs_ppo.ini'
+    env2 = configs if configs else 'configs/configs_ppo.ini'
     copy(env2, tar_dir)
 
     models = 'MAPPO.py'
