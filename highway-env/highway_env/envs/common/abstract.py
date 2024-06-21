@@ -756,6 +756,8 @@ class AbstractEnv(gym.Env):
             (vehicle.position, 0.9 * vehicle.LENGTH, 0.9 * vehicle.WIDTH, vehicle.heading),
             (other_trajectories[0], 0.9 * other.LENGTH, 0.9 * other.WIDTH, other_trajectories[1]))
 
+    def is_crashed(self):
+        return any(vehicle.crashed for vehicle in self.controlled_vehicles)
 
 class MultiAgentWrapper(Wrapper):
     def step(self, action):

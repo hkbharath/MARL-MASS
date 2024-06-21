@@ -160,3 +160,26 @@ def init_dir(base_dir, pathes=['train_videos', 'configs', 'models', 'eval_videos
             os.mkdir(cur_dir)
         dirs[path] = cur_dir
     return dirs
+
+def init_wandb(config, project_name: str, exp_name: str):
+    try:
+        import wandb
+        wandb_var = wandb
+        if project_name is None or exp_name is None:
+            return None
+
+        # start a new wandb run to track this script
+        wandb_var.init(
+            # set the wandb project where this run will be logged
+            project=project_name,
+            name=exp_name,
+            # track hyperparameters and run metadata
+            config=config,
+        )
+
+        return wandb_var
+    except ImportError:
+        print(
+            "wandb not available logging parameters in the terminal only."
+        )
+        return None

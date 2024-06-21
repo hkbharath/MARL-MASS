@@ -253,6 +253,7 @@ class MAPPO:
         vehicle_speed = []
         vehicle_position = []
         video_recorder = None
+        crash_count = 0
         seeds = [int(s) for s in self.test_seeds.split(',')]
 
         for i in range(eval_episodes):
@@ -304,11 +305,13 @@ class MAPPO:
             infos.append(infos_i)
             steps.append(step)
             avg_speeds.append(avg_speed / step)
+            crash_count += env.is_crashed()
 
         if video_recorder is not None:
             video_recorder.release()
         env.close()
-        return rewards, (vehicle_speed, vehicle_position), steps, avg_speeds
+        crash_percent = crash_count/eval_episodes
+        return rewards, (vehicle_speed, vehicle_position), steps, avg_speeds, crash_percent
 
     # discount roll out rewards
     def _discount_reward(self, rewards, final_value):
