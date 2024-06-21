@@ -139,7 +139,7 @@ def train(args):
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, _, avg_speed = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            rewards, _, _, avg_speed, crash_percent = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
             rewards_mu, rewards_std = agg_double_list(rewards)
             print("Episode %d, Average Reward %.2f" % (mappo.n_episodes + 1, rewards_mu))
             eval_rewards.append(rewards_mu)
@@ -147,7 +147,8 @@ def train(args):
             avg_speed_mu, avg_speed_std = agg_double_list(avg_speed)
             if wandb:
                 wandb.log({"reward": rewards_mu,
-                           "average_speed": avg_speed_mu})
+                           "average_speed": avg_speed_mu,
+                           "crash_percent": crash_percent})
                 
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
@@ -241,7 +242,8 @@ def evaluate(args):
     rewards_mu, rewards_std = agg_double_list(rewards)
     if wandb:
         wandb.log({"reward": rewards_mu,
-                "average_speed": avg_speed_mu})
+                "average_speed": avg_speed_mu,
+                "crash_percent": crash_percent})
         wandb.finish()
 
 
