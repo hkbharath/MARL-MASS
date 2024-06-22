@@ -1,0 +1,10 @@
+control==0.9.2
+gym==0.14.0
+numpy==1.19.2
+opencv-python==4.8.0.76
+pandas==1.1.5
+pygame==2.5.1
+torch==1.7.0
+torchaudio==0.7.0a0+ac17b64
+torchvision==0.8.0
+wandb==0.15.11
