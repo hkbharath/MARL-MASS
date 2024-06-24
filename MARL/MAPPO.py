@@ -39,6 +39,7 @@ class MAPPO:
 
         assert traffic_density in [1, 2, 3]
         assert reward_type in ["regionalR", "global_R"]
+        assert th.cuda.is_available() if use_cuda else True, "GPU is not available! Please enable GPU access to train."
         self.reward_type = reward_type
         self.env = env
         self.state_dim = state_dim
