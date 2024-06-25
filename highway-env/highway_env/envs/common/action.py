@@ -5,7 +5,7 @@ import numpy as np
 from highway_env import utils
 from highway_env.vehicle.dynamics import BicycleVehicle
 from highway_env.vehicle.kinematics import Vehicle
-from highway_env.vehicle.controller import MDPVehicle
+from highway_env.vehicle.controller import MDPVehicle, MDPLCVehicle
 
 if TYPE_CHECKING:
     from highway_env.envs.common.abstract import AbstractEnv
@@ -194,7 +194,14 @@ class DiscreteMetaAction(ActionType):
         # self.controlled_vehicle.act(self.actions[action[0]])
         self.controlled_vehicle.act(self.actions[action])
 
-
+class DiscreteMetaActionLC(DiscreteMetaAction):
+    def __init__(self, env: 'AbstractEnv',**kwargs):
+        super().__init__(env, **kwargs)
+    
+    @property
+    def vehicle_class(self) -> Callable:
+        return MDPLCVehicle
+    
 class MultiAgentAction(ActionType):
     def __init__(self,
                  env: 'AbstractEnv',
@@ -228,6 +235,8 @@ def action_factory(env: 'AbstractEnv', config: dict) -> ActionType:
         return ContinuousAction(env, **config)
     elif config["type"] == "DiscreteMetaAction":
         return DiscreteMetaAction(env, **config)
+    elif config["type"] == "DiscreteMetaActionLC":
+        return DiscreteMetaActionLC(env, **config)
     elif config["type"] == "MultiAgentAction":
         return MultiAgentAction(env, **config)
     else:
