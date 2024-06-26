@@ -29,6 +29,8 @@ def parse_args():
     parser.add_argument('--evaluation-seeds', type=str, required=False,
                         default=','.join([str(i) for i in range(0, 600, 20)]),
                         help="random seeds for evaluation, split by ,")
+    parser.add_argument("--checkpoint", type=int, default=None, 
+                        required=False, help="Checkpoint number")
     args = parser.parse_args()
     return args
 
@@ -221,6 +223,8 @@ def evaluate(args):
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback="default") + '-evaluation'
+    if args.checkpoint is not None:
+        exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
     wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
 
     assert env.T % ROLL_OUT_N_STEPS == 0
@@ -242,7 +246,7 @@ def evaluate(args):
                   )
 
     # load the model if exist
-    mappo.load(model_dir, train_mode=False)
+    mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
     rewards, _, steps, avg_speeds, crash_percent = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
     avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
     rewards_mu, rewards_std = agg_double_list(rewards)
