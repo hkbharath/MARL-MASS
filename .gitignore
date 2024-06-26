@@ -7,3 +7,4 @@ outputs/
 wandb/
 */results/
 .ipynb_checkpoints/
+nohup.out
