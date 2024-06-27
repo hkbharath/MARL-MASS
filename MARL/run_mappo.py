@@ -12,6 +12,7 @@ import configparser
 import os
 from datetime import datetime
 
+DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771"#,92,604,556,81,965,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
 
 def parse_args():
     default_base_dir = "./results/"
@@ -27,7 +28,7 @@ def parse_args():
     parser.add_argument('--model-dir', type=str, required=False,
                         default='', help="pretrained model path")
     parser.add_argument('--evaluation-seeds', type=str, required=False,
-                        default=','.join([str(i) for i in range(0, 600, 20)]),
+                        default=DEFAULT_EVAL_SEEDS,
                         help="random seeds for evaluation, split by ,")
     parser.add_argument("--checkpoint", type=int, default=None, 
                         required=False, help="Checkpoint number")
