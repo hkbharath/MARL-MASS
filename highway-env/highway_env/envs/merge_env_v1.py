@@ -223,8 +223,22 @@ class MergeEnv(AbstractEnv):
         other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
         self.controlled_vehicles = []
 
-        spawn_points_s = [10, 50, 90, 130, 170, 210]
-        spawn_points_m = [5, 45, 85, 125, 165, 205]
+        #default spawn points
+        # spawn_points_s = [10, 50, 90, 130, 170, 210]
+        # spawn_points_m = [5, 45, 85, 125, 165, 205]
+
+        spawn_points_s = [50, 65, 80, 95, 110, 125]
+        spawn_points_m = [45, 60, 75, 90, 105, 120]
+        
+        # Update the spwn points to be dense
+        # if num_CAV > 0 and num_HDV > 0:
+        #     spawn_points_s = [np.random.randint(pt, pt+10) for pt in range(40, 190, 15)]
+        #     spawn_points_m = [np.random.randint(pt, pt+5) for pt in range(35, 185, 15)]
+        # elif num_HDV == 0:
+        #     spawn_points_s = [pt for pt in range(50, 150, 10)]
+        # elif num_CAV == 0:
+        #     spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 150, 10)]
+
 
         """Spawn points for CAV"""
         # spawn point indexes on the straight road
