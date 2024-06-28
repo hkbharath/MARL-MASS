@@ -12,6 +12,7 @@ th.backends.cudnn.deterministic = True
 
 from torch.optim import Adam, RMSprop
 
+import time
 import numpy as np
 import os, logging
 from copy import deepcopy
@@ -254,7 +255,8 @@ class MAPPO:
         vehicle_speed = []
         vehicle_position = []
         video_recorder = None
-        crash_count = 0
+        crash_count = []
+        step_time = []
         seeds = [int(s) for s in self.test_seeds.split(',')]
 
         for i in range(eval_episodes):
@@ -263,6 +265,7 @@ class MAPPO:
             rewards_i = []
             infos_i = []
             done = False
+            step_time_i = 0
             if is_train:
                 if self.traffic_density == 1:
                     state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=(i + 1)%3)
@@ -290,8 +293,11 @@ class MAPPO:
 
             while not done:
                 step += 1
+                s_start = time.process_time()
                 action = self.action(state, n_agents)
                 state, reward, done, info = env.step(action)
+                s_time = time.process_time() - s_start
+
                 avg_speed += info["average_speed"]
                 rendered_frame = env.render(mode="rgb_array")
                 if video_recorder is not None:
@@ -299,6 +305,7 @@ class MAPPO:
 
                 rewards_i.append(reward)
                 infos_i.append(info)
+                step_time_i += s_time
 
             vehicle_speed.append(info["vehicle_speed"])
             vehicle_position.append(info["vehicle_position"])
@@ -306,13 +313,18 @@ class MAPPO:
             infos.append(infos_i)
             steps.append(step)
             avg_speeds.append(avg_speed / step)
-            crash_count += env.is_crashed()
+            crash_count.append(env.is_crashed())
+            step_time.append(step_time_i/ step)
 
         if video_recorder is not None:
             video_recorder.release()
         env.close()
-        crash_percent = crash_count/eval_episodes*100
-        return rewards, (vehicle_speed, vehicle_position), steps, avg_speeds, crash_percent
+
+        ext_info = {"steps":steps,
+                    "avg_speeds": avg_speeds,
+                    "crash_count": crash_count,
+                    "step_time": step_time,}
+        return rewards, (vehicle_speed, vehicle_position), ext_info
 
     # discount roll out rewards
     def _discount_reward(self, rewards, final_value):

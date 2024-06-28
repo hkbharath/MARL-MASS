@@ -140,16 +140,23 @@ def train(args):
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, _, avg_speed, crash_percent = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            rewards, _,  ext_info = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            avg_speeds = ext_info["avg_speeds"]
+            crash_count = ext_info["crash_count"]
+            step_time = ext_info["step_time"]
+
             rewards_mu, rewards_std = agg_double_list(rewards)
             print("Episode %d, Average Reward %.2f" % (mappo.n_episodes + 1, rewards_mu))
             eval_rewards.append(rewards_mu)
 
-            avg_speed_mu, avg_speed_std = agg_double_list(avg_speed)
+            avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+            crash_count = sum(crash_count)
+            step_time_mu, _ = agg_double_list(step_time)
             if wandb:
                 wandb.log({"reward": rewards_mu,
                            "average_speed": avg_speed_mu,
-                           "crash_percent": crash_percent})
+                           "crash_count": crash_count,
+                           "time_per_step": step_time_mu})
                 
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
@@ -244,13 +251,19 @@ def evaluate(args):
 
     # load the model if exist
     mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
-    rewards, _, steps, avg_speeds, crash_percent = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    rewards, _, ext_info = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    avg_speeds = ext_info["avg_speeds"]
+    crash_count = ext_info["crash_count"]
+    step_time = ext_info["step_time"]
     avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
     rewards_mu, rewards_std = agg_double_list(rewards)
+    crash_count = sum(crash_count)
+    step_time_mu, _ = agg_double_list(step_time)
     if wandb:
         wandb.log({"reward": rewards_mu,
-                "average_speed": avg_speed_mu,
-                "crash_percent": crash_percent})
+                    "average_speed": avg_speed_mu,
+                    "crash_count": crash_count,
+                    "time_per_step": step_time_mu})
         wandb.finish()
 
 
