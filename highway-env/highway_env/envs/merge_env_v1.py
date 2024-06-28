@@ -227,8 +227,8 @@ class MergeEnv(AbstractEnv):
         # spawn_points_s = [10, 50, 90, 130, 170, 210]
         # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
-        spawn_points_s = [50, 65, 80, 95, 110, 125]
-        spawn_points_m = [45, 60, 75, 90, 105, 120]
+        spawn_points_s = [50, 60, 70, 80, 90, 100]
+        spawn_points_m = [50, 60, 70, 75, 85, 95]
         
         # Update the spwn points to be dense
         # if num_CAV > 0 and num_HDV > 0:
