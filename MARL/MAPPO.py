@@ -311,7 +311,7 @@ class MAPPO:
         if video_recorder is not None:
             video_recorder.release()
         env.close()
-        crash_percent = crash_count/eval_episodes
+        crash_percent = crash_count/eval_episodes*100
         return rewards, (vehicle_speed, vehicle_position), steps, avg_speeds, crash_percent
 
     # discount roll out rewards
