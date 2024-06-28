@@ -228,18 +228,11 @@ class MergeEnv(AbstractEnv):
         # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
         spawn_points_s = [50, 60, 70, 80, 90, 100]
-        spawn_points_m = [50, 60, 70, 75, 85, 95]
+        spawn_points_m = [50, 60, 75, 85, 95, 105]
         
-        # Update the spwn points to be dense
-        # if num_CAV > 0 and num_HDV > 0:
-        #     spawn_points_s = [np.random.randint(pt, pt+10) for pt in range(40, 190, 15)]
-        #     spawn_points_m = [np.random.randint(pt, pt+5) for pt in range(35, 185, 15)]
-        # elif num_HDV == 0:
-        #     spawn_points_s = [pt for pt in range(50, 150, 10)]
-        # elif num_CAV == 0:
-        #     spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 150, 10)]
-
-
+        # spawn_points_s = [np.random.randint(pt, pt+5) for pt in range(50, 110, 10)]
+        # spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 110, 10)]
+        
         """Spawn points for CAV"""
         # spawn point indexes on the straight road
         spawn_point_s_c = np.random.choice(spawn_points_s, num_CAV // 2, replace=False)
