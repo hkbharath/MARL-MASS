@@ -117,7 +117,7 @@ class MergeEnv(AbstractEnv):
                 else:
                     v_fl, v_rl = None, None
             for v in [v_fl, v_fr, vehicle, v_rl, v_rr]:
-                if type(v) is MDPVehicle and v is not None:
+                if v is not None and isinstance(v, MDPVehicle):
                     neighbor_vehicle.append(v)
             regional_reward = sum(v.local_reward for v in neighbor_vehicle)
             vehicle.regional_reward = regional_reward / sum(1 for _ in filter(None.__ne__, neighbor_vehicle))
@@ -264,14 +264,17 @@ class MergeEnv(AbstractEnv):
 
         """spawn the CAV on the straight road first"""
         for _ in range(num_CAV // 2):
-            ego_vehicle = self.action_type.vehicle_class(road, road.network.get_lane(("a", "b", 0)).position(
-                spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), speed=initial_speed.pop(0))
+            ego_vehicle = self.action_type.vehicle_class(road=road, 
+                                                         position = road.network.get_lane(("a", "b", 0))
+                                                            .position(spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), 
+                                                         speed=initial_speed.pop(0))
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
         """spawn the rest CAV on the merging road"""
         for _ in range(num_CAV - num_CAV // 2):
-            ego_vehicle = self.action_type.vehicle_class(road, road.network.get_lane(("j", "k", 0)).position(
-                spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), speed=initial_speed.pop(0))
+            ego_vehicle = self.action_type.vehicle_class(road = road, position = road.network.get_lane(("j", "k", 0))
+                                                            .position(spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), 
+                                                         speed=initial_speed.pop(0))
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
 
@@ -318,6 +321,31 @@ class MergeEnvMARL(MergeEnv):
         })
         return config
     
+class MergeEnvLCMARL(MergeEnv):
+
+    n_a = 5
+    n_s = 30
+    
+    @classmethod
+    def default_config(cls) -> dict:
+        config = super().default_config()
+        config.update({
+            "action": {
+                "type": "MultiAgentAction",
+                "action_config": {
+                    "type": "DiscreteMetaActionLC",
+                    "lateral": True,
+                    "longitudinal": True
+                }},
+            "observation": {
+                "type": "MultiAgentObservation",
+                "observation_config": {
+                    "type": "KinematicLC"
+                }},
+            "controlled_vehicles": 4
+        })
+        return config
+    
 register(
     id='merge-v1',
     entry_point='highway_env.envs:MergeEnv',
@@ -326,4 +354,9 @@ register(
 register(
     id='merge-multi-agent-v0',
     entry_point='highway_env.envs:MergeEnvMARL',
+)
+
+register(
+    id='merge-multi-agent-v1',
+    entry_point='highway_env.envs:MergeEnvLCMARL',
 )

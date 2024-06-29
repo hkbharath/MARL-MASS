@@ -76,7 +76,9 @@ def train(args):
     reward_scale = config.getfloat('TRAIN_CONFIG', 'reward_scale')
 
     # init env
-    env = gym.make('merge-multi-agent-v0')
+    env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
+    env = gym.make(env_id)
+
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -93,7 +95,7 @@ def train(args):
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
-    env_eval = gym.make('merge-multi-agent-v0')
+    env_eval = gym.make(env_id)
     env_eval.config['seed'] = config.getint('ENV_CONFIG', 'seed') + 1
     env_eval.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env_eval.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -208,7 +210,9 @@ def evaluate(args):
     reward_scale = config.getfloat('TRAIN_CONFIG', 'reward_scale')
 
     # init env
-    env = gym.make('merge-multi-agent-v0')
+    env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
+    env = gym.make(env_id)
+
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env.config['duration'] = config.getint('ENV_CONFIG', 'duration')

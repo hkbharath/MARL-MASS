@@ -391,10 +391,10 @@ class AbstractEnv(gym.Env):
                             else:
                                 idm_controller(v, env_copy, v.action)
 
-                        elif type(v) is MDPVehicle and v is not vehicle:
+                        elif isinstance(v, MDPVehicle) and v is not vehicle:
                             # use the previous action: idle
                             mdp_controller(v, env_copy,  actions[v.id])
-                        elif type(v) is MDPVehicle and v is vehicle:
+                        elif isinstance(v, MDPVehicle) and v is vehicle:
                             if actions[index] == action:
                                 mdp_controller(v, env_copy, action)
                             else:

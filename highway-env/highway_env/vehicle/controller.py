@@ -295,3 +295,34 @@ class MDPVehicle(ControlledVehicle):
                 if (t % int(trajectory_timestep / dt)) == 0:
                     states.append(copy.deepcopy(v))
         return states
+
+
+class MDPLCVehicle(MDPVehicle):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+    
+    def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
+        d = {
+            'presence': 1,
+            'x': self.position[0],
+            'y': self.position[1],
+            'vx': self.velocity[0],
+            'vy': self.velocity[1],
+            'heading': self.heading,
+            'cos_h': self.direction[0],
+            'sin_h': self.direction[1],
+            'cos_d': self.destination_direction[0],
+            'sin_d': self.destination_direction[1]
+        }
+        if not observe_intentions:
+            d["cos_d"] = d["sin_d"] = 0
+        
+        # set heading relative to the lane heading
+        vlocal_pos = self.lane.local_coordinates(self.position)
+        d['heading'] = self.lane.heading_at(vlocal_pos[0]) - d['heading']
+
+        if origin_vehicle:
+            origin_dict = origin_vehicle.to_dict()
+            for key in ['x', 'y', 'vx', 'vy', 'heading']:
+                d[key] -= origin_dict[key]
+        return d
