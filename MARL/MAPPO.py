@@ -258,6 +258,7 @@ class MAPPO:
         crash_count = []
         step_time = []
         seeds = [int(s) for s in self.test_seeds.split(',')]
+        video_filename = None
 
         for i in range(eval_episodes):
             avg_speed = 0
@@ -277,8 +278,10 @@ class MAPPO:
                 state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i])
 
             n_agents = len(env.controlled_vehicles)
-            rendered_frame = env.render(mode="rgb_array")
-            video_filename = os.path.join(output_dir,
+            
+            if not is_train:
+                rendered_frame = env.render(mode="rgb_array")
+                video_filename = os.path.join(output_dir,
                                           "testing_episode{}".format(self.n_episodes + 1) + '_{}'.format(i) +
                                           '.mp4')
             # Init video recording
@@ -299,8 +302,9 @@ class MAPPO:
                 s_time = time.process_time() - s_start
 
                 avg_speed += info["average_speed"]
-                rendered_frame = env.render(mode="rgb_array")
+                
                 if video_recorder is not None:
+                    rendered_frame = env.render(mode="rgb_array")
                     video_recorder.add_frame(rendered_frame)
 
                 rewards_i.append(reward)
