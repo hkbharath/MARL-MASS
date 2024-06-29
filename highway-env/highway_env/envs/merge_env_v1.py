@@ -223,9 +223,16 @@ class MergeEnv(AbstractEnv):
         other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
         self.controlled_vehicles = []
 
-        spawn_points_s = [10, 50, 90, 130, 170, 210]
-        spawn_points_m = [5, 45, 85, 125, 165, 205]
+        #default spawn points
+        # spawn_points_s = [10, 50, 90, 130, 170, 210]
+        # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
+        spawn_points_s = [30, 50, 70, 90, 110, 120]
+        spawn_points_m = [25, 45, 65, 95, 115, 125]
+        
+        # spawn_points_s = [np.random.randint(pt, pt+5) for pt in range(50, 110, 10)]
+        # spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 110, 10)]
+        
         """Spawn points for CAV"""
         # spawn point indexes on the straight road
         spawn_point_s_c = np.random.choice(spawn_points_s, num_CAV // 2, replace=False)

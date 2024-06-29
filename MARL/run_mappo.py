@@ -12,6 +12,7 @@ import configparser
 import os
 from datetime import datetime
 
+DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965,450"#,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
 
 def parse_args():
     default_base_dir = "./results/"
@@ -27,7 +28,7 @@ def parse_args():
     parser.add_argument('--model-dir', type=str, required=False,
                         default='', help="pretrained model path")
     parser.add_argument('--evaluation-seeds', type=str, required=False,
-                        default=','.join([str(i) for i in range(0, 600, 20)]),
+                        default=DEFAULT_EVAL_SEEDS,
                         help="random seeds for evaluation, split by ,")
     parser.add_argument("--checkpoint", type=int, default=None, 
                         required=False, help="Checkpoint number")
@@ -111,7 +112,7 @@ def train(args):
 
     state_dim = env.n_s
     action_dim = env.n_a
-    test_seeds = args.evaluation_seeds
+    test_seeds = ','.join([str(i) for i in range(0, 600, 20)])
 
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
@@ -141,16 +142,23 @@ def train(args):
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, _, avg_speed, crash_percent = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            rewards, _,  ext_info = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            avg_speeds = ext_info["avg_speeds"]
+            crash_count = ext_info["crash_count"]
+            step_time = ext_info["step_time"]
+
             rewards_mu, rewards_std = agg_double_list(rewards)
             print("Episode %d, Average Reward %.2f" % (mappo.n_episodes + 1, rewards_mu))
             eval_rewards.append(rewards_mu)
 
-            avg_speed_mu, avg_speed_std = agg_double_list(avg_speed)
+            avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+            crash_count = sum(crash_count)
+            step_time_mu, _ = agg_double_list(step_time)
             if wandb:
                 wandb.log({"reward": rewards_mu,
                            "average_speed": avg_speed_mu,
-                           "crash_percent": crash_percent})
+                           "crash_count": crash_count,
+                           "time_per_step": step_time_mu})
                 
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
@@ -247,13 +255,19 @@ def evaluate(args):
 
     # load the model if exist
     mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
-    rewards, _, steps, avg_speeds, crash_percent = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    rewards, _, ext_info = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    avg_speeds = ext_info["avg_speeds"]
+    crash_count = ext_info["crash_count"]
+    step_time = ext_info["step_time"]
     avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
     rewards_mu, rewards_std = agg_double_list(rewards)
+    crash_count = sum(crash_count)
+    step_time_mu, _ = agg_double_list(step_time)
     if wandb:
         wandb.log({"reward": rewards_mu,
-                "average_speed": avg_speed_mu,
-                "crash_percent": crash_percent})
+                    "average_speed": avg_speed_mu,
+                    "crash_count": crash_count,
+                    "time_per_step": step_time_mu})
         wandb.finish()
 
 
