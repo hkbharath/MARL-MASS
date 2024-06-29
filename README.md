@@ -48,8 +48,8 @@ to run the seed 0. We can plot the comparison curves with the code: `python comm
 - To train unsafe MARL-CAV
      `python run_mappo.py --config configs/configs_marl-cav-unsafe.ini`
 
-- To evaluate a trained model
-     `python run_mappo.py --option eval --model-dir <results/Jun_21_**_**_**>`
+- To evaluate a trained model to reproduce worst performance
+     `python run_mappo.py --option eval --model-dir results/Jun_23_11_55_41`
 
 ## Reference
 - [Highway-env](https://github.com/eleurent/highway-env)
