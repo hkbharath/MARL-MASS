@@ -32,6 +32,8 @@ def parse_args():
                         help="random seeds for evaluation, split by ,")
     parser.add_argument("--checkpoint", type=int, default=None, 
                         required=False, help="Checkpoint number")
+    parser.add_argument('--exp-name', type=str, required=False,
+                        default=None, help="WandB experiment run name")
     args = parser.parse_args()
     return args
 
@@ -117,6 +119,8 @@ def train(args):
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback=None)
+    if args.exp_name is not None:
+        exp_name = args.exp_name
     wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(env=env, memory_capacity=MEMORY_CAPACITY,
@@ -231,6 +235,8 @@ def evaluate(args):
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback="default") + '-evaluation'
+    if args.exp_name is not None:
+        exp_name = args.exp_name
     if args.checkpoint is not None:
         exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
     wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
