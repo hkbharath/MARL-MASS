@@ -227,8 +227,17 @@ class MergeEnv(AbstractEnv):
         # spawn_points_s = [10, 50, 90, 130, 170, 210]
         # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
-        spawn_points_s = [30, 50, 70, 90, 110, 120]
-        spawn_points_m = [25, 45, 65, 95, 115, 125]
+        # mix 60 diff
+        # spawn_points_s = [10, 70, 130, 190, 250]
+        # spawn_points_m = [5, 65, 130, 195, 255]
+
+        # mix 40 diff
+        spawn_points_s = [10, 50, 90, 130, 170, 210]
+        spawn_points_m = [5, 45, 85, 135, 175, 215]
+
+        # mix 30 diff
+        # spawn_points_s = [10, 40, 70, 100, 130, 160]
+        # spawn_points_m = [5, 35, 65, 105, 135, 165]
         
         # spawn_points_s = [np.random.randint(pt, pt+5) for pt in range(50, 110, 10)]
         # spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 110, 10)]
@@ -258,7 +267,7 @@ class MergeEnv(AbstractEnv):
 
         # initial speed with noise and location noise
         initial_speed = np.random.rand(num_CAV + num_HDV) * 2 + 25  # range from [25, 27]
-        loc_noise = np.random.rand(num_CAV + num_HDV) * 3 - 1.5  # range from [-1.5, 1.5]
+        loc_noise = np.random.rand(num_CAV + num_HDV) * 10 - 5  # range from [-5, 5]
         initial_speed = list(initial_speed)
         loc_noise = list(loc_noise)
 
