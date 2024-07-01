@@ -227,15 +227,15 @@ class MergeEnv(AbstractEnv):
         # spawn_points_s = [10, 50, 90, 130, 170, 210]
         # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
-        # mix 60 diff
+        # mix 60 diff = td 1 [30-32 m/s?]
         # spawn_points_s = [10, 70, 130, 190, 250]
         # spawn_points_m = [5, 65, 130, 195, 255]
 
-        # mix 40 diff
+        # mix 40 diff = td 2 [25-27 m/s]
         spawn_points_s = [10, 50, 90, 130, 170, 210]
         spawn_points_m = [5, 45, 85, 135, 175, 215]
 
-        # mix 30 diff
+        # mix 30 diff = td 3 [15-17 m/s]
         # spawn_points_s = [10, 40, 70, 100, 130, 160]
         # spawn_points_m = [5, 35, 65, 105, 135, 165]
         
