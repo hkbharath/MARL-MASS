@@ -267,7 +267,7 @@ class MergeEnv(AbstractEnv):
 
         # initial speed with noise and location noise
         initial_speed = np.random.rand(num_CAV + num_HDV) * 2 + 25  # range from [25, 27]
-        loc_noise = np.random.rand(num_CAV + num_HDV) * 10 - 5  # range from [-5, 5]
+        loc_noise = np.random.rand(num_CAV + num_HDV) * 8 - 4  # range from [-4, 4]
         initial_speed = list(initial_speed)
         loc_noise = list(loc_noise)
 
