@@ -233,7 +233,7 @@ def evaluate(args):
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     # init wnadb logging
-    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None) + '-evaluation'
+    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None) + '-evaluations'
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback="default")
     if args.exp_name is not None:
         exp_name = args.exp_name
