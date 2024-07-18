@@ -326,3 +326,9 @@ class MDPLCVehicle(MDPVehicle):
             for key in ['x', 'y', 'vx', 'vy', 'heading']:
                 d[key] -= origin_dict[key]
         return d
+    
+    def speed_control(self, target_speed: float) -> float:
+        return super().speed_control(target_speed=target_speed)
+    
+    def steering_control(self, target_lane_index: LaneIndex) -> float:
+        return super().steering_control(target_lane_index=target_lane_index)
