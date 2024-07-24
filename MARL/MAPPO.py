@@ -2,7 +2,7 @@ import torch as th
 from torch import nn
 import configparser
 
-config_dir = 'configs/configs_ppo.ini'
+config_dir = 'configs/configs_marl-cav.ini'
 config = configparser.ConfigParser()
 config.read(config_dir)
 torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')
@@ -12,6 +12,7 @@ th.backends.cudnn.deterministic = True
 
 from torch.optim import Adam, RMSprop
 
+import time
 import numpy as np
 import os, logging
 from copy import deepcopy
@@ -39,6 +40,7 @@ class MAPPO:
 
         assert traffic_density in [1, 2, 3]
         assert reward_type in ["regionalR", "global_R"]
+        assert th.cuda.is_available() if use_cuda else True, "GPU is not available! Please enable GPU access to train."
         self.reward_type = reward_type
         self.env = env
         self.state_dim = state_dim
@@ -138,7 +140,7 @@ class MAPPO:
             self.epoch_steps.append(0)
         else:
             self.episode_done = False
-            final_action = self.action(final_state)
+            final_action = self.action(final_state, self.n_agents)
             final_value = self.value(final_state, final_action)
 
         if self.reward_scale > 0:
@@ -253,7 +255,10 @@ class MAPPO:
         vehicle_speed = []
         vehicle_position = []
         video_recorder = None
+        crash_count = []
+        step_time = []
         seeds = [int(s) for s in self.test_seeds.split(',')]
+        video_filename = None
 
         for i in range(eval_episodes):
             avg_speed = 0
@@ -261,19 +266,22 @@ class MAPPO:
             rewards_i = []
             infos_i = []
             done = False
+            step_time_i = 0
             if is_train:
                 if self.traffic_density == 1:
-                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=i + 1)
+                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=(i + 1)%3)
                 elif self.traffic_density == 2:
-                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=i + 2)
+                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=(i + 2)%4)
                 elif self.traffic_density == 3:
-                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=i + 4)
+                    state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i], num_CAV=(i + 4)%6)
             else:
                 state, action_mask = env.reset(is_training=False, testing_seeds=seeds[i])
 
             n_agents = len(env.controlled_vehicles)
-            rendered_frame = env.render(mode="rgb_array")
-            video_filename = os.path.join(output_dir,
+            
+            if not is_train:
+                rendered_frame = env.render(mode="rgb_array")
+                video_filename = os.path.join(output_dir,
                                           "testing_episode{}".format(self.n_episodes + 1) + '_{}'.format(i) +
                                           '.mp4')
             # Init video recording
@@ -288,15 +296,20 @@ class MAPPO:
 
             while not done:
                 step += 1
+                s_start = time.process_time()
                 action = self.action(state, n_agents)
                 state, reward, done, info = env.step(action)
+                s_time = time.process_time() - s_start
+
                 avg_speed += info["average_speed"]
-                rendered_frame = env.render(mode="rgb_array")
+                
                 if video_recorder is not None:
+                    rendered_frame = env.render(mode="rgb_array")
                     video_recorder.add_frame(rendered_frame)
 
                 rewards_i.append(reward)
                 infos_i.append(info)
+                step_time_i += s_time
 
             vehicle_speed.append(info["vehicle_speed"])
             vehicle_position.append(info["vehicle_position"])
@@ -304,11 +317,18 @@ class MAPPO:
             infos.append(infos_i)
             steps.append(step)
             avg_speeds.append(avg_speed / step)
+            crash_count.append(env.is_crashed())
+            step_time.append(step_time_i/ step)
 
         if video_recorder is not None:
             video_recorder.release()
         env.close()
-        return rewards, (vehicle_speed, vehicle_position), steps, avg_speeds
+
+        ext_info = {"steps":steps,
+                    "avg_speeds": avg_speeds,
+                    "crash_count": crash_count,
+                    "step_time": step_time,}
+        return rewards, (vehicle_speed, vehicle_position), ext_info
 
     # discount roll out rewards
     def _discount_reward(self, rewards, final_value):

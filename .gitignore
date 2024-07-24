@@ -1,0 +1,10 @@
+*.pyc
+__pycache__/
+venv/
+/.vscode/
+/.pytest_cache/
+outputs/
+wandb/
+*/results/
+.ipynb_checkpoints/
+nohup.out

@@ -4,7 +4,7 @@ from torch.autograd import Variable
 import numpy as np
 from shutil import copy
 import torch.nn as nn
-
+import fnmatch
 
 def entropy(p):
     return -th.sum(p * th.log(p), 1)
@@ -106,13 +106,13 @@ def copy_file(tar_dir):
     copy(c3, tar_dir)
 
 
-def copy_file_ppo(tar_dir):
+def copy_file_ppo(tar_dir, configs = None):
     # env = '.highway-env/envs/common/abstract.py'
     # copy(env, tar_dir)
     # env1 = '.highway_env/envs/merge_env_v1.py'
     # copy(env1, tar_dir)
 
-    env2 = 'configs/configs_ppo.ini'
+    env2 = configs if configs else 'configs/configs_ppo.ini'
     copy(env2, tar_dir)
 
     models = 'MAPPO.py'
@@ -160,3 +160,34 @@ def init_dir(base_dir, pathes=['train_videos', 'configs', 'models', 'eval_videos
             os.mkdir(cur_dir)
         dirs[path] = cur_dir
     return dirs
+
+def init_wandb(config, project_name: str, exp_name: str):
+    try:
+        import wandb
+        wandb_var = wandb
+        if project_name is None or exp_name is None:
+            return None
+
+        # start a new wandb run to track this script
+        wandb_var.init(
+            # set the wandb project where this run will be logged
+            project=project_name,
+            name=exp_name,
+            # track hyperparameters and run metadata
+            config=config,
+        )
+
+        return wandb_var
+    except ImportError:
+        print(
+            "wandb not available logging parameters in the terminal only."
+        )
+        return None
+    
+def get_config_file(base_directory):
+    pattern = 'configs_*.ini'
+    
+    for root, _, filenames in os.walk(base_directory):
+        for filename in fnmatch.filter(filenames, pattern):
+            return os.path.join(root, filename)
+    return ''

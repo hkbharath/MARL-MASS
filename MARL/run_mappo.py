@@ -1,5 +1,5 @@
 from MAPPO import MAPPO
-from common.utils import agg_double_list, copy_file_ppo, init_dir
+from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb, get_config_file
 import sys
 sys.path.append("../highway-env")
 
@@ -12,43 +12,43 @@ import configparser
 import os
 from datetime import datetime
 
+DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965"#,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
 
 def parse_args():
-    """
-    Description for this experiment:
-        + easy: globalR
-        + seed = 0
-    """
     default_base_dir = "./results/"
-    default_config_dir = 'configs/configs_ppo.ini'
+    default_config = 'configs/configs_marl-cav.ini'
     parser = argparse.ArgumentParser(description=('Train or evaluate policy on RL environment '
                                                   'using mappo'))
     parser.add_argument('--base-dir', type=str, required=False,
                         default=default_base_dir, help="experiment base dir")
     parser.add_argument('--option', type=str, required=False,
                         default='train', help="train or evaluate")
-    parser.add_argument('--config-dir', type=str, required=False,
-                        default=default_config_dir, help="experiment config path")
+    parser.add_argument('--config', type=str, required=False,
+                        default=default_config, help="experiment config path")
     parser.add_argument('--model-dir', type=str, required=False,
                         default='', help="pretrained model path")
     parser.add_argument('--evaluation-seeds', type=str, required=False,
-                        default=','.join([str(i) for i in range(0, 600, 20)]),
+                        default=DEFAULT_EVAL_SEEDS,
                         help="random seeds for evaluation, split by ,")
+    parser.add_argument("--checkpoint", type=int, default=None, 
+                        required=False, help="Checkpoint number")
+    parser.add_argument('--exp-name', type=str, required=False,
+                        default=None, help="WandB experiment run name")
     args = parser.parse_args()
     return args
 
 
 def train(args):
     base_dir = args.base_dir
-    config_dir = args.config_dir
+    config_file = args.config
     config = configparser.ConfigParser()
-    config.read(config_dir)
+    config.read(config_file)
 
     # create an experiment folder
     now = datetime.utcnow().strftime("%b_%d_%H_%M_%S")
     output_dir = base_dir + now
     dirs = init_dir(output_dir)
-    copy_file_ppo(dirs['configs'])
+    copy_file_ppo(dirs['configs'], configs=config_file)
 
     if os.path.exists(args.model_dir):
         model_dir = args.model_dir
@@ -78,7 +78,9 @@ def train(args):
     reward_scale = config.getfloat('TRAIN_CONFIG', 'reward_scale')
 
     # init env
-    env = gym.make('merge-multi-agent-v0')
+    env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
+    env = gym.make(env_id)
+
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -91,10 +93,11 @@ def train(args):
     env.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
-
+    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
-    env_eval = gym.make('merge-multi-agent-v0')
+    env_eval = gym.make(env_id)
     env_eval.config['seed'] = config.getint('ENV_CONFIG', 'seed') + 1
     env_eval.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env_eval.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -106,10 +109,19 @@ def train(args):
     env_eval.config['MERGING_LANE_COST'] = config.getint('ENV_CONFIG', 'MERGING_LANE_COST')
     env_eval.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     env_eval.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
+    env_eval.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env_eval.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     state_dim = env.n_s
     action_dim = env.n_a
-    test_seeds = args.evaluation_seeds
+    test_seeds = ','.join([str(i) for i in range(0, 600, 20)])
+
+    # init wnadb logging
+    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None)
+    exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback=None)
+    if args.exp_name is not None:
+        exp_name = args.exp_name
+    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(env=env, memory_capacity=MEMORY_CAPACITY,
                   state_dim=state_dim, action_dim=action_dim,
@@ -134,22 +146,39 @@ def train(args):
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, _, _ = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            rewards, _,  ext_info = mappo.evaluation(env_eval, dirs['train_videos'], EVAL_EPISODES)
+            avg_speeds = ext_info["avg_speeds"]
+            crash_count = ext_info["crash_count"]
+            step_time = ext_info["step_time"]
+
             rewards_mu, rewards_std = agg_double_list(rewards)
             print("Episode %d, Average Reward %.2f" % (mappo.n_episodes + 1, rewards_mu))
             eval_rewards.append(rewards_mu)
+
+            avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+            crash_count = sum(crash_count)
+            step_time_mu, _ = agg_double_list(step_time)
+            if wandb:
+                wandb.log({"reward": rewards_mu,
+                           "average_speed": avg_speed_mu,
+                           "crash_count": crash_count,
+                           "time_per_step": step_time_mu})
+                
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
 
     # save the model
     mappo.save(dirs['models'], MAX_EPISODES + 2)
 
-    plt.figure()
-    plt.plot(eval_rewards)
-    plt.xlabel("Episode")
-    plt.ylabel("Average Reward")
-    plt.legend(["MAPPO"])
-    plt.show()
+    if wandb:
+        wandb.finish()
+
+    # plt.figure()
+    # plt.plot(eval_rewards)
+    # plt.xlabel("Episode")
+    # plt.ylabel("Average Reward")
+    # plt.legend(["MAPPO"])
+    # plt.show()
 
 
 def evaluate(args):
@@ -157,9 +186,11 @@ def evaluate(args):
         model_dir = args.model_dir + '/models/'
     else:
         raise Exception("Sorry, no pretrained models")
-    config_dir = args.model_dir + '/configs/configs_ppo.ini'
+    
+    config_file = get_config_file(args.model_dir + '/configs/')
     config = configparser.ConfigParser()
-    config.read(config_dir)
+    if os.path.exists(config_file):
+        config.read(config_file)
 
     video_dir = args.model_dir + '/eval_videos'
 
@@ -183,7 +214,9 @@ def evaluate(args):
     reward_scale = config.getfloat('TRAIN_CONFIG', 'reward_scale')
 
     # init env
-    env = gym.make('merge-multi-agent-v0')
+    env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
+    env = gym.make(env_id)
+
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -196,6 +229,17 @@ def evaluate(args):
     env.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
+    env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
+
+    # init wnadb logging
+    project_name = config.get('PROJECT_CONFIG', 'name', fallback=None) + '-evaluations'
+    exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback="default")
+    if args.exp_name is not None:
+        exp_name = args.exp_name
+    if args.checkpoint is not None:
+        exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
+    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
 
     assert env.T % ROLL_OUT_N_STEPS == 0
     state_dim = env.n_s
@@ -216,8 +260,21 @@ def evaluate(args):
                   )
 
     # load the model if exist
-    mappo.load(model_dir, train_mode=False)
-    rewards, _, steps, avg_speeds = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
+    rewards, _, ext_info = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    avg_speeds = ext_info["avg_speeds"]
+    crash_count = ext_info["crash_count"]
+    step_time = ext_info["step_time"]
+    avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+    rewards_mu, rewards_std = agg_double_list(rewards)
+    crash_count = sum(crash_count)
+    step_time_mu, _ = agg_double_list(step_time)
+    if wandb:
+        wandb.log({"reward": rewards_mu,
+                    "average_speed": avg_speed_mu,
+                    "crash_count": crash_count,
+                    "time_per_step": step_time_mu})
+        wandb.finish()
 
 
 if __name__ == "__main__":

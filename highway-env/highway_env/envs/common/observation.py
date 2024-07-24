@@ -160,16 +160,6 @@ class KinematicObservation(ObservationType):
         self.see_behind = see_behind
         self.observe_intentions = observe_intentions
 
-    def space(self) -> spaces.Space:
-        return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-1, high=1, dtype=np.float32)
-
-    def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Normalize the observation values.
-
-        For now, assume that the road is straight along the x axis.
-        :param Dataframe df: observation data
-        """
         if not self.features_range:
             # side_lanes = self.env.road.network.all_side_lanes(self.observer_vehicle.lane_index)
             # self.features_range = {
@@ -184,6 +174,17 @@ class KinematicObservation(ObservationType):
                 "vx": [-1.5 * MDPVehicle.SPEED_MAX, 1.5 * MDPVehicle.SPEED_MAX],
                 "vy": [-1.5 * MDPVehicle.SPEED_MAX, 1.5 * MDPVehicle.SPEED_MAX]
             }
+
+    def space(self) -> spaces.Space:
+        return spaces.Box(shape=(self.vehicles_count, len(self.features)), low=-1, high=1, dtype=np.float32)
+
+    def normalize_obs(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Normalize the observation values.
+
+        For now, assume that the road is straight along the x axis.
+        :param Dataframe df: observation data
+        """
         for feature, f_range in self.features_range.items():
             if feature in df:
                 df[feature] = utils.lmap(df[feature], [f_range[0], f_range[1]], [-1, 1])
@@ -224,7 +225,53 @@ class KinematicObservation(ObservationType):
         # Flatten
         return obs
 
+class KinematicLCObservation(KinematicObservation):
 
+    """Observe the kinematics of nearby vehicles."""
+
+    FEATURES: List[str] = ['presence', 'x', 'y', 'vx', 'vy', 'heading']
+
+    def __init__(self, env:'AbstractEnv', **kwargs):
+        super().__init__(env, **kwargs)
+
+        # assume that the vehicle does not attemp to in reverse direction. Vehicle does not turn turn perpendicular to the road heading.
+        if "heading" not in self.features_range:
+            self.features_range["heading"] = [-np.pi/2, np.pi/2]
+
+    def observe(self) -> Dict[str, np.ndarray]:
+        if not self.env.road:
+            return np.zeros(self.space().shape)
+
+        # Add ego-vehicle
+        df = pd.DataFrame.from_records([self.observer_vehicle.to_dict()])[self.features]
+        # Add nearby traffic
+        # sort = self.order == "sorted"
+        close_vehicles = self.env.road.close_vehicles_to(self.observer_vehicle,
+                                                         self.env.PERCEPTION_DISTANCE,
+                                                         count=self.vehicles_count - 1,
+                                                         see_behind=self.see_behind)
+        if close_vehicles:
+            origin = self.observer_vehicle if not self.absolute else None
+            df = df.append(pd.DataFrame.from_records(
+                [v.to_dict(origin, observe_intentions=self.observe_intentions)
+                 for v in close_vehicles[-self.vehicles_count + 1:]])[self.features],
+                           ignore_index=True)
+
+        # Normalize and clip
+        if self.normalize:
+            df = self.normalize_obs(df)
+        # Fill missing rows
+        if df.shape[0] < self.vehicles_count:
+            rows = np.zeros((self.vehicles_count - df.shape[0], len(self.features)))
+            df = df.append(pd.DataFrame(data=rows, columns=self.features), ignore_index=True)
+        # Reorder
+        df = df[self.features]
+        obs = df.values.copy()
+        if self.order == "shuffled":
+            self.env.np_random.shuffle(obs[1:])
+        # Flatten
+        return obs
+    
 class OccupancyGridObservation(ObservationType):
 
     """Observe an occupancy grid of nearby vehicles."""
@@ -396,5 +443,7 @@ def observation_factory(env: 'AbstractEnv', config: dict) -> ObservationType:
         return AttributesObservation(env, **config)
     elif config["type"] == "MultiAgentObservation":
         return MultiAgentObservation(env, **config)
+    elif config["type"] == "KinematicLC":
+        return KinematicLCObservation(env, **config)
     else:
         raise ValueError("Unknown observation type")

@@ -117,13 +117,14 @@ class AbstractEnv(gym.Env):
             "scaling": 5.5,
             "show_trajectories": False,
             "render_agent": True,
-            "safety_guarantee": True,
+            "safety_guarantee": "priority", # "none", "cbf"
             "offscreen_rendering": os.environ.get("OFFSCREEN_RENDERING", "0") == "1",
             "manual_control": False,
             "real_time_rendering": False,
-            "n_step": 5,  # do n step prediction
+            "n_step": 8,  # do n step prediction
             "seed": 0,
-            "action_masking": True
+            "action_masking": True,
+            "mixed_traffic": True, # Mixed traffic configuration by default
         }
 
     def seed(self, seeding: int = None) -> List[int]:
@@ -390,10 +391,10 @@ class AbstractEnv(gym.Env):
                             else:
                                 idm_controller(v, env_copy, v.action)
 
-                        elif type(v) is MDPVehicle and v is not vehicle:
+                        elif isinstance(v, MDPVehicle) and v is not vehicle:
                             # use the previous action: idle
                             mdp_controller(v, env_copy,  actions[v.id])
-                        elif type(v) is MDPVehicle and v is vehicle:
+                        elif isinstance(v, MDPVehicle) and v is vehicle:
                             if actions[index] == action:
                                 mdp_controller(v, env_copy, action)
                             else:
@@ -452,10 +453,10 @@ class AbstractEnv(gym.Env):
             raise NotImplementedError("The road and vehicle must be initialized in the environment implementation")
 
         self.steps += 1
-        if self.config["safety_guarantee"]:
+
+        self.new_action = action
+        if "safety_guarantee" in self.config and self.config["safety_guarantee"] == "priority":
             self.new_action = self.safety_supervisor(action)
-        else:
-            self.new_action = action
 
         # action is a tuple, e.g., (2, 3, 0, 1)
         self._simulate(self.new_action)
@@ -748,6 +749,8 @@ class AbstractEnv(gym.Env):
             (vehicle.position, 0.9 * vehicle.LENGTH, 0.9 * vehicle.WIDTH, vehicle.heading),
             (other_trajectories[0], 0.9 * other.LENGTH, 0.9 * other.WIDTH, other_trajectories[1]))
 
+    def is_crashed(self):
+        return any(vehicle.crashed for vehicle in self.controlled_vehicles)
 
 class MultiAgentWrapper(Wrapper):
     def step(self, action):
