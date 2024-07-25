@@ -298,8 +298,22 @@ class MDPVehicle(ControlledVehicle):
 
 
 class MDPLCVehicle(MDPVehicle):
-    def __init__(self, **kwargs) -> None:
+    # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
+    KP_STEER = 1/15 
+    def __init__(self, safety_layer:str=None, lateral_ctrl:str='steer',**kwargs) -> None:
+        """_summary_
+
+        Args:
+            safety_layer (_type_, optional): Specify the class used to ensure safety of the vehicle. Defaults to None.
+            lateral_ctrl (str, optional): Set `lateral_ctrl = 'steer'` for 1st-order response on the steering wheel dynamics and 
+                                            `lateral_ctrl = 'steer_vel'` for 2nd-order response to steering wheel based on steering velocity. 
+                                            Defaults to 'steer'.
+        """
         super().__init__(**kwargs)
+        self.safety_layer = safety_layer
+        self.lateral_ctrl = lateral_ctrl
+        # Addition state parameter store current steering state
+        self.steering_angle = 0
     
     def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
         d = {
@@ -326,3 +340,45 @@ class MDPLCVehicle(MDPVehicle):
             for key in ['x', 'y', 'vx', 'vy', 'heading']:
                 d[key] -= origin_dict[key]
         return d
+    
+    def steering_control(self, target_lane_index: LaneIndex) -> float:
+        """Generate a steering velocity using proportional controller. KP must be tune appropriately for this process.
+
+        Args:
+            target_lane_index (LaneIndex): target lane index
+
+        Returns:
+            float: steering control or steering velocity control
+        """
+        steering_ref = super().steering_control(target_lane_index)
+        if self.lateral_ctrl == 'steer_vel':
+            return self.KP_STEER * (steering_ref - self.steering_angle)
+        
+        return steering_ref
+
+    def step(self, dt: float) -> None:
+        """
+        Propagate the vehicle state given its actions.
+
+        Extends a modified bicycle model handle 1st-order response on the steering wheel dynamics and
+        2nd-order response to steering wheel based on steering velocity.
+
+        If the vehicle is crashed, the actions are overridden with erratic steering and braking until complete stop.
+        The vehicle's current lane is updated.
+
+
+        :param dt: timestep of integration of the model [s]
+        """
+
+        if self.lateral_ctrl == 'steer_vel':
+            self.clip_actions()
+            self.steering_angle += self.action['steering'] * dt
+            beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
+            v = self.speed * np.array([np.cos(self.heading + beta),
+                                    np.sin(self.heading + beta)])
+            self.position += v * dt
+            self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2)
+            self.speed += self.action['acceleration'] * dt
+            self.on_state_update()
+        else:
+            return super().step(dt)

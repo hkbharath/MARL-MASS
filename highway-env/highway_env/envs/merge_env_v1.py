@@ -214,6 +214,11 @@ class MergeEnv(AbstractEnv):
         road.objects.append(Obstacle(road, lbc.position(self.ends[2], 0)))
         self.road = road
 
+    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float):
+        return self.action_type.vehicle_class(road=road, 
+                                            position = position, 
+                                            speed=speed)
+    
     def _make_vehicles(self, num_CAV=4, num_HDV=3) -> None:
         """
         Populate a road with several vehicles on the highway and on the merging lane, as well as an ego-vehicle.
@@ -273,7 +278,7 @@ class MergeEnv(AbstractEnv):
 
         """spawn the CAV on the straight road first"""
         for _ in range(num_CAV // 2):
-            ego_vehicle = self.action_type.vehicle_class(road=road, 
+            ego_vehicle = self._make_ego_vehicle(road=road, 
                                                          position = road.network.get_lane(("a", "b", 0))
                                                             .position(spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), 
                                                          speed=initial_speed.pop(0))
@@ -281,7 +286,7 @@ class MergeEnv(AbstractEnv):
             road.vehicles.append(ego_vehicle)
         """spawn the rest CAV on the merging road"""
         for _ in range(num_CAV - num_CAV // 2):
-            ego_vehicle = self.action_type.vehicle_class(road = road, position = road.network.get_lane(("j", "k", 0))
+            ego_vehicle = self._make_ego_vehicle(road = road, position = road.network.get_lane(("j", "k", 0))
                                                             .position(spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), 
                                                          speed=initial_speed.pop(0))
             self.controlled_vehicles.append(ego_vehicle)
@@ -351,9 +356,19 @@ class MergeEnvLCMARL(MergeEnv):
                 "observation_config": {
                     "type": "KinematicLC"
                 }},
-            "controlled_vehicles": 4
+            "controlled_vehicles": 4,
+            "lateral_control": "steer"
         })
         return config
+    
+    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float):
+        safety_layer = self.config["safety_guarantee"]
+        lateral_ctrl = self.config["lateral_control"]
+        return self.action_type.vehicle_class(safety_layer = safety_layer,
+                                              lateral_ctrl = lateral_ctrl,
+                                            road=road, 
+                                            position = position, 
+                                            speed=speed)
     
 register(
     id='merge-v1',

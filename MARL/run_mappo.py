@@ -94,6 +94,7 @@ def train(args):
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='none')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
@@ -110,6 +111,7 @@ def train(args):
     env_eval.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     env_eval.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env_eval.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env_eval.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='none')
     env_eval.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     state_dim = env.n_s
@@ -230,6 +232,7 @@ def evaluate(args):
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='none')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     # init wnadb logging
