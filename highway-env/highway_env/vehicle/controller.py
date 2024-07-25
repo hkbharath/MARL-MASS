@@ -40,6 +40,7 @@ class ControlledVehicle(Vehicle):
         self.target_lane_index = target_lane_index or self.lane_index
         self.target_speed = target_speed or self.speed
         self.route = route
+        self.id = 0
 
     @classmethod
     def create_from(cls, vehicle: "ControlledVehicle") -> "ControlledVehicle":
@@ -51,7 +52,7 @@ class ControlledVehicle(Vehicle):
         :param vehicle: a vehicle
         :return: a new vehicle at the same dynamical state
         """
-        v = cls(vehicle.road, vehicle.position, heading=vehicle.heading, speed=vehicle.speed,
+        v = cls(road = vehicle.road, position = vehicle.position, heading=vehicle.heading, speed=vehicle.speed,
                 target_lane_index=vehicle.target_lane_index, target_speed=vehicle.target_speed,
                 route=vehicle.route)
         return v
@@ -299,8 +300,11 @@ class MDPVehicle(ControlledVehicle):
 
 class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
-    KP_STEER = 1/15 
-    def __init__(self, safety_layer:str=None, lateral_ctrl:str='steer',**kwargs) -> None:
+    KP_STEER = ControlledVehicle.KP_HEADING*2
+    def __init__(self, safety_layer:str=None, 
+                 lateral_ctrl:str='steer',
+                 store_profile:bool = True,
+                 **kwargs) -> None:
         """_summary_
 
         Args:
@@ -312,6 +316,13 @@ class MDPLCVehicle(MDPVehicle):
         super().__init__(**kwargs)
         self.safety_layer = safety_layer
         self.lateral_ctrl = lateral_ctrl
+        self.action_hist = None
+        self.state_hist = None
+
+        if store_profile:
+            self.action_hist = []
+            self.state_hist = []
+            
         # Addition state parameter store current steering state
         self.steering_angle = 0
     
@@ -370,6 +381,7 @@ class MDPLCVehicle(MDPVehicle):
         :param dt: timestep of integration of the model [s]
         """
 
+        state_var:dict = {}
         if self.lateral_ctrl == 'steer_vel':
             self.clip_actions()
             self.steering_angle += self.action['steering'] * dt
@@ -379,6 +391,17 @@ class MDPLCVehicle(MDPVehicle):
             self.position += v * dt
             self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2)
             self.speed += self.action['acceleration'] * dt
+
+            state_var.update({"steering_angle":self.steering_angle})
+            
             self.on_state_update()
         else:
-            return super().step(dt)
+            super().step(dt)
+
+        if self.action_hist is not None:
+            self.action_hist.append(self.action)
+        
+        if self.state_hist is not None:
+            state_var.update(self.to_dict())
+            state_var.update({"speed":self.speed})
+            self.state_hist.append(state_var)
