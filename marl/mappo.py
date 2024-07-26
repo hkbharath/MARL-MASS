@@ -1,14 +1,5 @@
 import torch as th
 from torch import nn
-import configparser
-
-config_dir = 'configs/configs_marl-cav.ini'
-config = configparser.ConfigParser()
-config.read(config_dir)
-torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')
-th.manual_seed(torch_seed)
-th.backends.cudnn.benchmark = False
-th.backends.cudnn.deterministic = True
 
 from torch.optim import Adam, RMSprop
 
@@ -16,8 +7,8 @@ import time
 import numpy as np
 import os, logging
 from copy import deepcopy
-from single_agent.Memory_common import OnPolicyReplayMemory
-from single_agent.Model_common import ActorNetwork, CriticNetwork
+from marl.single_agent.Memory_common import OnPolicyReplayMemory
+from marl.single_agent.Model_common import ActorNetwork, CriticNetwork
 from common.utils import index_to_one_hot, to_tensor_var, VideoRecorder
 
 

@@ -115,15 +115,15 @@ def copy_file_ppo(tar_dir, configs = None):
     env2 = configs if configs else 'configs/configs_ppo.ini'
     copy(env2, tar_dir)
 
-    models = 'MAPPO.py'
+    models = 'marl/mappo.py'
     copy(models, tar_dir)
     main = 'run_mappo.py'
     copy(main, tar_dir)
-    c1 = 'single_agent/Agent_common.py'
+    c1 = 'marl/single_agent/Agent_common.py'
     copy(c1, tar_dir)
-    c2 = 'single_agent/Memory_common.py'
+    c2 = 'marl/single_agent/Memory_common.py'
     copy(c2, tar_dir)
-    c3 = 'single_agent/Model_common.py'
+    c3 = 'marl/single_agent/Model_common.py'
     copy(c3, tar_dir)
 
 
@@ -191,3 +191,8 @@ def get_config_file(base_directory):
         for filename in fnmatch.filter(filenames, pattern):
             return os.path.join(root, filename)
     return ''
+
+def set_torch_seed(torch_seed:int = 0):
+    th.manual_seed(torch_seed)
+    th.backends.cudnn.benchmark = False
+    th.backends.cudnn.deterministic = True

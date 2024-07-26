@@ -2,8 +2,8 @@
 import torch as th
 import numpy as np
 
-from single_agent.Memory_common import ReplayMemory
-from single_agent.utils_common import identity
+from marl.single_agent.Memory_common import ReplayMemory
+from marl.single_agent.utils_common import identity
 
 
 class Agent(object):
