@@ -35,6 +35,10 @@ def main():
         state_hist, action_hist = env.make_left_lc()
     elif args.lc_dir == "right":
         state_hist, action_hist = env.make_right_lc()
+    elif args.lc_dir == "z_left":
+        state_hist, action_hist = env.make_zigzag_lc(init_lane=0)
+    elif args.lc_dir == "z_right":
+        state_hist, action_hist = env.make_zigzag_lc(init_lane=1)
 
     log_profile(state_hist=state_hist, action_hist=action_hist)
 

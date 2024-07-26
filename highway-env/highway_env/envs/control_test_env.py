@@ -130,6 +130,31 @@ class ControlTestEnv(AbstractEnv):
             time.sleep(0.5)
         
         return self.vehicle.state_hist, self.vehicle.action_hist
+    
+    def make_zigzag_lc(self, test_seed = 0, init_lane=0) -> Tuple[dict, dict]:
+        done = False
+        obs, _ = self.reset(testing_seeds=test_seed, init_lane=init_lane)
+
+        # Alternate lane every second
+        step_count = 0
+        curr_action = self.ACTIONS_ALL['LANE_RIGHT']
+        next_action = self.ACTIONS_ALL['LANE_LEFT']
+
+        if init_lane == 1:
+            curr_action, next_action = next_action, curr_action
+
+        while not done:
+            obs, reward, done, info = self.step(curr_action)
+            step_count += 1
+            self.render()
+            time.sleep(0.5)
+
+            # swap lane change action to make alternate lane change
+            if step_count == self.config["policy_frequency"]:
+                step_count = 0
+                curr_action, next_action = next_action, curr_action
+        
+        return self.vehicle.state_hist, self.vehicle.action_hist
 
 class ControlTestStreerVEnv(ControlTestEnv):
     """
