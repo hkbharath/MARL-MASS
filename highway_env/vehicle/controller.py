@@ -300,7 +300,7 @@ class MDPVehicle(ControlledVehicle):
 
 class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
-    KP_STEER = ControlledVehicle.KP_HEADING*2
+    KP_STEER = 10
     def __init__(self, safety_layer:str=None, 
                  lateral_ctrl:str='steer',
                  store_profile:bool = True,
@@ -318,6 +318,7 @@ class MDPLCVehicle(MDPVehicle):
         self.lateral_ctrl = lateral_ctrl
         self.action_hist = None
         self.state_hist = None
+        self.t_step = 0.0
 
         if store_profile:
             self.action_hist = []
@@ -381,7 +382,7 @@ class MDPLCVehicle(MDPVehicle):
         :param dt: timestep of integration of the model [s]
         """
 
-        state_var:dict = {}
+        state_var:dict = {"t_step":self.t_step}
         if self.lateral_ctrl == 'steer_vel':
             self.clip_actions()
             self.steering_angle += self.action['steering'] * dt
@@ -397,11 +398,21 @@ class MDPLCVehicle(MDPVehicle):
             self.on_state_update()
         else:
             super().step(dt)
-
+                  
         if self.action_hist is not None:
+            action_rec = self.action
+            action_rec["t_step"] = self.t_step
+            action_rec["lc_action"] = 1 # 'IDLE': 1
+            if self.lane_index != self.target_lane_index:
+                # lc_actions: 'LANE_LEFT': 0, 'LANE_RIGHT': 2,
+                # lane_index: left:0, right:1
+                _f, _t, _id = self.target_lane_index
+                action_rec["lc_action"] = 0 if _id == 0 else 2
             self.action_hist.append(self.action)
         
         if self.state_hist is not None:
             state_var.update(self.to_dict())
             state_var.update({"speed":self.speed})
             self.state_hist.append(state_var)
+        
+        self.t_step += dt

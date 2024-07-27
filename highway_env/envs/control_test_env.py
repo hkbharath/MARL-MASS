@@ -114,7 +114,7 @@ class ControlTestEnv(AbstractEnv):
         while not done:
             obs, reward, done, info = self.step(self.ACTIONS_ALL['LANE_LEFT'])
             self.render()
-            time.sleep(0.5)
+            time.sleep(0.1)
             
 
         return self.vehicle.state_hist, self.vehicle.action_hist
@@ -127,7 +127,7 @@ class ControlTestEnv(AbstractEnv):
         while not done:
             obs, reward, done, info = self.step(self.ACTIONS_ALL['LANE_RIGHT'])
             self.render()
-            time.sleep(0.5)
+            time.sleep(0.1)
         
         return self.vehicle.state_hist, self.vehicle.action_hist
     
@@ -147,7 +147,7 @@ class ControlTestEnv(AbstractEnv):
             obs, reward, done, info = self.step(curr_action)
             step_count += 1
             self.render()
-            time.sleep(0.5)
+            time.sleep(0.1)
 
             # swap lane change action to make alternate lane change
             if step_count == self.config["policy_frequency"]:
