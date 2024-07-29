@@ -363,8 +363,8 @@ class MDPLCVehicle(MDPVehicle):
             float: steering control or steering velocity control
         """
         steering_ref = super().steering_control(target_lane_index)
-        steering_ref = steering_ref/8 # A smaller target to reach.
         if self.lateral_ctrl == 'steer_vel':
+            steering_ref = steering_ref/8 # A smaller target to reach.
             return self.KP_STEER * (steering_ref - self.steering_angle)
         
         return steering_ref
