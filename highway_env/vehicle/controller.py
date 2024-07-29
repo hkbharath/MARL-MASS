@@ -300,7 +300,7 @@ class MDPVehicle(ControlledVehicle):
 
 class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
-    KP_STEER = 10
+    KP_STEER = 15
     def __init__(self, safety_layer:str=None, 
                  lateral_ctrl:str='steer',
                  store_profile:bool = True,
@@ -363,6 +363,7 @@ class MDPLCVehicle(MDPVehicle):
             float: steering control or steering velocity control
         """
         steering_ref = super().steering_control(target_lane_index)
+        steering_ref = steering_ref/8 # A smaller target to reach.
         if self.lateral_ctrl == 'steer_vel':
             return self.KP_STEER * (steering_ref - self.steering_angle)
         
@@ -398,6 +399,7 @@ class MDPLCVehicle(MDPVehicle):
             self.on_state_update()
         else:
             super().step(dt)
+            state_var.update({"steering_angle":self.action['steering']})
                   
         if self.action_hist is not None:
             action_rec = self.action
