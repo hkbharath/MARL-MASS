@@ -2,6 +2,7 @@ import argparse
 from argparse import ArgumentParser
 import gym
 from highway_env.envs.control_test_env import ControlTestEnv
+from highway_env.vehicle.controller import MDPLCVehicle
 from common.utils import init_wandb
 
 def parse_args():
@@ -11,6 +12,10 @@ def parse_args():
                         default="steer", help="Lateral control type")
     parser.add_argument('--lc-dir', type=str, required=False,
                         default="left", help="Lateral control direction")
+    parser.add_argument('--kp', type=float, required=False,
+                        default=15, help="KP_steer value for steer_vel control")
+    parser.add_argument('--rf', type=float, required=False,
+                        default=1/8, help="Reduction factor for steer_vel control")
     
     return parser.parse_args()
 
@@ -23,6 +28,8 @@ def log_profile(config:dict, args:argparse.Namespace, state_hist:dict, action_hi
 
     project_name = "Control profile"
     exp_name = "av-"+ args.control + "-" + args.lc_dir
+    if args.control == "steer_vel":
+        exp_name = "{0}-kp:{1}-rf:{2:1.3f}".format(exp_name, MDPLCVehicle.KP_STEER, MDPLCVehicle.STEER_TARGET_RF)
     wandb = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
 
     if wandb:
@@ -59,6 +66,9 @@ def main():
     env_id = "control-test-v0"
     if args.control == "steer_vel":
         env_id = "control-test-steer_vel-v0"
+        MDPLCVehicle.KP_STEER = args.kp
+        MDPLCVehicle.STEER_TARGET_RF = args.rf
+
     env:ControlTestEnv = gym.make(env_id)
 
     state_hist = {}
