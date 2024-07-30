@@ -125,7 +125,8 @@ def train(args):
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback=None)
     if args.exp_name is not None:
         exp_name = args.exp_name
-    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+    wb_config = {"env": env.config, "marl": config._sections}
+    wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(env=env, memory_capacity=MEMORY_CAPACITY,
                   state_dim=state_dim, action_dim=action_dim,
@@ -248,7 +249,8 @@ def evaluate(args):
         exp_name = args.exp_name
     if args.checkpoint is not None:
         exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
-    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+    wb_config = {"env": env.config, "marl": config._sections}
+    wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     assert env.T % ROLL_OUT_N_STEPS == 0
     state_dim = env.n_s
