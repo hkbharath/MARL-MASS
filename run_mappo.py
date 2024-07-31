@@ -196,6 +196,8 @@ def evaluate(args):
     config = configparser.ConfigParser()
     if os.path.exists(config_file):
         config.read(config_file)
+    else:
+        print("Config file:'{0}' not found!".format(config_file))
 
     # make the torch seed for reproducibility
     torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')

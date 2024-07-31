@@ -282,6 +282,7 @@ class MergeEnv(AbstractEnv):
                                                          position = road.network.get_lane(("a", "b", 0))
                                                             .position(spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), 
                                                          speed=initial_speed.pop(0))
+            ego_vehicle.id = len(self.controlled_vehicles)
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
         """spawn the rest CAV on the merging road"""
@@ -289,6 +290,7 @@ class MergeEnv(AbstractEnv):
             ego_vehicle = self._make_ego_vehicle(road = road, position = road.network.get_lane(("j", "k", 0))
                                                             .position(spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), 
                                                          speed=initial_speed.pop(0))
+            ego_vehicle.id = len(self.controlled_vehicles)
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
 

@@ -185,7 +185,7 @@ def init_wandb(config, project_name: str, exp_name: str):
         return None
     
 def get_config_file(base_directory):
-    pattern = 'configs_*.ini'
+    pattern = '*configs_*.ini'
     
     for root, _, filenames in os.walk(base_directory):
         for filename in fnmatch.filter(filenames, pattern):
