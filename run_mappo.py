@@ -1,16 +1,14 @@
-from MAPPO import MAPPO
-from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb, get_config_file
+from marl.mappo import MAPPO
+from common.utils import agg_double_list, copy_file_ppo, init_dir, init_wandb, get_config_file, set_torch_seed
 import sys
-sys.path.append("../highway-env")
 
 import gym
-import numpy as np
 import matplotlib.pyplot as plt
-import highway_env
 import argparse
 import configparser
 import os
 from datetime import datetime
+from highway_env.envs.merge_env_v1 import MergeEnvMARL
 
 DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965"#,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
 
@@ -43,6 +41,10 @@ def train(args):
     config_file = args.config
     config = configparser.ConfigParser()
     config.read(config_file)
+
+    # make the torch seed for reproducibility
+    torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')
+    set_torch_seed(torch_seed=torch_seed)
 
     # create an experiment folder
     now = datetime.utcnow().strftime("%b_%d_%H_%M_%S")
@@ -79,7 +81,7 @@ def train(args):
 
     # init env
     env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
-    env = gym.make(env_id)
+    env:MergeEnvMARL = gym.make(env_id)
 
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
@@ -94,10 +96,11 @@ def train(args):
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
-    env_eval = gym.make(env_id)
+    env_eval:MergeEnvMARL = gym.make(env_id)
     env_eval.config['seed'] = config.getint('ENV_CONFIG', 'seed') + 1
     env_eval.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
     env_eval.config['duration'] = config.getint('ENV_CONFIG', 'duration')
@@ -110,6 +113,7 @@ def train(args):
     env_eval.config['traffic_density'] = config.getint('ENV_CONFIG', 'traffic_density')
     env_eval.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env_eval.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env_eval.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env_eval.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     state_dim = env.n_s
@@ -121,7 +125,8 @@ def train(args):
     exp_name = config.get('PROJECT_CONFIG', 'exp_name', fallback=None)
     if args.exp_name is not None:
         exp_name = args.exp_name
-    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+    wb_config = {"env": env.config, "marl": config._sections}
+    wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(env=env, memory_capacity=MEMORY_CAPACITY,
                   state_dim=state_dim, action_dim=action_dim,
@@ -191,7 +196,13 @@ def evaluate(args):
     config = configparser.ConfigParser()
     if os.path.exists(config_file):
         config.read(config_file)
+    else:
+        print("Config file:'{0}' not found!".format(config_file))
 
+    # make the torch seed for reproducibility
+    torch_seed = config.getint('MODEL_CONFIG', 'torch_seed')
+    set_torch_seed(torch_seed=torch_seed)
+    
     video_dir = args.model_dir + '/eval_videos'
 
     # model configs
@@ -215,7 +226,7 @@ def evaluate(args):
 
     # init env
     env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
-    env = gym.make(env_id)
+    env:MergeEnvMARL = gym.make(env_id)
 
     env.config['seed'] = config.getint('ENV_CONFIG', 'seed')
     env.config['simulation_frequency'] = config.getint('ENV_CONFIG', 'simulation_frequency')
@@ -230,6 +241,7 @@ def evaluate(args):
     traffic_density = config.getint('ENV_CONFIG', 'traffic_density')
     env.config['action_masking'] = config.getboolean('MODEL_CONFIG', 'action_masking')
     env.config['safety_guarantee'] = config.get('ENV_CONFIG', 'safety_guarantee')
+    env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic')
 
     # init wnadb logging
@@ -239,7 +251,8 @@ def evaluate(args):
         exp_name = args.exp_name
     if args.checkpoint is not None:
         exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
-    wandb = init_wandb(config=env.config, project_name=project_name, exp_name=exp_name)
+    wb_config = {"env": env.config, "marl": config._sections}
+    wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     assert env.T % ROLL_OUT_N_STEPS == 0
     state_dim = env.n_s
