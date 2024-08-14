@@ -302,6 +302,7 @@ class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
     KP_STEER = 15
     STEER_TARGET_RF = 0.150 # Reduction factor to define a smaller target to reach.
+    RECORD_EXPECTED = False # This variable is used to specify either actual value (dafeult) or expected steering_angle value is recorded. 
     def __init__(self, safety_layer:str=None, 
                  lateral_ctrl:str='steer',
                  store_profile:bool = True,
@@ -319,6 +320,7 @@ class MDPLCVehicle(MDPVehicle):
         self.lateral_ctrl = lateral_ctrl
         self.action_hist = None
         self.state_hist = None
+        self.steering_exp = 0
         self.t_step = 0.0
 
         if store_profile:
@@ -365,7 +367,8 @@ class MDPLCVehicle(MDPVehicle):
         """
         steering_ref = super().steering_control(target_lane_index)
         if self.lateral_ctrl == 'steer_vel':
-            steering_ref = steering_ref*self.STEER_TARGET_RF 
+            steering_ref = steering_ref*self.STEER_TARGET_RF
+            self.steering_exp = steering_ref
             return self.KP_STEER * (steering_ref - self.steering_angle)
         
         return steering_ref
@@ -395,7 +398,10 @@ class MDPLCVehicle(MDPVehicle):
             self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2)
             self.speed += self.action['acceleration'] * dt
 
-            state_var.update({"steering_angle":self.steering_angle})
+            if self.RECORD_EXPECTED:
+                state_var.update({"steering_angle":self.steering_exp})
+            else:
+                state_var.update({"steering_angle":self.steering_angle})
             
             self.on_state_update()
         else:

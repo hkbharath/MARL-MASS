@@ -15,7 +15,11 @@ def parse_args():
     parser.add_argument('--kp', type=float, required=False,
                         default=15, help="KP_steer value for steer_vel control")
     parser.add_argument('--rf', type=float, required=False,
-                        default=1/8, help="Reduction factor for steer_vel control")
+                        default=0.15, help="Reduction factor for steer_vel control")
+    parser.add_argument('--exp', action='store_true', help="Store expected steering velocity ref values")
+    parser.add_argument('--midlc', action='store_true', help="Delay lane change by a specified INIT_STEPS")
+    parser.add_argument('--fast', action='store_true', help="Set higher inital speed to 35 m/s")
+    parser.add_argument('--slow', action='store_true', help="Set lower inital speed to 15 m/s")
     
     return parser.parse_args()
 
@@ -28,8 +32,14 @@ def log_profile(config:dict, args:argparse.Namespace, state_hist:dict, action_hi
 
     project_name = "Control profile"
     exp_name = "av-"+ args.control + "-" + args.lc_dir
+    exp_name = exp_name + "-exp" if args.exp else exp_name
+    exp_name = exp_name + "-midlc" if args.midlc else exp_name
+    exp_name = exp_name + "-fast" if args.fast else exp_name
+    exp_name = exp_name + "-slow" if args.slow else exp_name
+
     if args.control == "steer_vel":
         exp_name = "{0}-kp:{1}-rf:{2:1.3f}".format(exp_name, MDPLCVehicle.KP_STEER, MDPLCVehicle.STEER_TARGET_RF)
+
     wandb = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
 
     if wandb:
@@ -68,7 +78,16 @@ def main():
         env_id = "control-test-steer_vel-v0"
         MDPLCVehicle.KP_STEER = args.kp
         MDPLCVehicle.STEER_TARGET_RF = args.rf
-
+        MDPLCVehicle.RECORD_EXPECTED = args.exp
+    
+    if args.midlc:
+        ControlTestEnv.INIT_STEPS = 3 # 1s simulation time
+    if args.fast:
+        ControlTestEnv.INIT_SPEED = 35 # 1s simulation time
+        MDPLCVehicle.SPEED_MAX = 35
+    if args.slow:
+        ControlTestEnv.INIT_SPEED = 15 # 1s simulation time
+    
     env:ControlTestEnv = gym.make(env_id)
 
     state_hist = {}
@@ -82,6 +101,7 @@ def main():
     elif args.lc_dir == "z_right":
         state_hist, action_hist = env.make_zigzag_lc(init_lane=1)
 
+    env.close()
     log_profile(config = env.config, args = args, state_hist=state_hist, action_hist=action_hist)
 
 if __name__ == "__main__":
