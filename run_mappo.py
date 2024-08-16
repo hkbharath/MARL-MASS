@@ -32,6 +32,7 @@ def parse_args():
                         required=False, help="Checkpoint number")
     parser.add_argument('--exp-name', type=str, required=False,
                         default=None, help="WandB experiment run name")
+    parser.add_argument('--src-url', type=str, required=False, default=None, help='WandB URL to link evaluations to source training runs')
     args = parser.parse_args()
     return args
 
@@ -251,7 +252,10 @@ def evaluate(args):
         exp_name = args.exp_name
     if args.checkpoint is not None:
         exp_name = exp_name + ':cp-{:d}'.format(args.checkpoint)
+    
     wb_config = {"env": env.config, "marl": config._sections}
+    if args.src_url is not None:
+        wb_config["src-url"] = args.src_url
     wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     assert env.T % ROLL_OUT_N_STEPS == 0
