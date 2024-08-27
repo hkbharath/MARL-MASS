@@ -39,8 +39,12 @@ def log_profile(config:dict, args:argparse.Namespace, state_hist:dict, action_hi
 
     if args.control == "steer_vel":
         exp_name = "{0}-kp:{1}-rf:{2:1.3f}".format(exp_name, MDPLCVehicle.KP_STEER, MDPLCVehicle.STEER_TARGET_RF)
-
-    wandb = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
+    
+    wandb_config = {
+        "env_config": config,
+        "test_config": vars(args)
+    }
+    wandb = init_wandb(config=wandb_config, project_name=project_name, exp_name=exp_name)
 
     if wandb:
         wandb.define_metric("t_step")
