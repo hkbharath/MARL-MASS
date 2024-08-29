@@ -1,7 +1,7 @@
 import argparse
 from argparse import ArgumentParser
 import gym
-from highway_env.envs.control_test_env import ControlTestEnv
+from test.av_control.control_test_env import ControlTestEnv
 from highway_env.vehicle.controller import MDPLCVehicle
 from common.utils import init_wandb
 
@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('--kp', type=float, required=False,
                         default=15, help="KP_steer value for steer_vel control")
     parser.add_argument('--rf', type=float, required=False,
-                        default=1/8, help="Reduction factor for steer_vel control")
+                        default=0.150, help="Reduction factor for steer_vel control")
     
     return parser.parse_args()
 
