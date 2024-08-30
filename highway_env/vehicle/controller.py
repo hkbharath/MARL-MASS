@@ -21,21 +21,23 @@ class ControlledVehicle(Vehicle):
 
     TAU_A = 0.6  # [s]
     TAU_DS = 0.2  # [s]
-    PURSUIT_TAU = 0.5*TAU_DS  # [s]
+    PURSUIT_TAU = 0.5 * TAU_DS  # [s]
     KP_A = 1 / TAU_A
     KP_HEADING = 1 / TAU_DS
-    KP_LATERAL = 1/3 * KP_HEADING  # [1/s]
+    KP_LATERAL = 1 / 3 * KP_HEADING  # [1/s]
     MAX_STEERING_ANGLE = np.pi / 3  # [rad]
     DELTA_SPEED = 5  # [m/s]
 
-    def __init__(self,
-                 road: Road,
-                 position: Vector,
-                 heading: float = 0,
-                 speed: float = 0,
-                 target_lane_index: LaneIndex = None,
-                 target_speed: float = None,
-                 route: Route = None):
+    def __init__(
+        self,
+        road: Road,
+        position: Vector,
+        heading: float = 0,
+        speed: float = 0,
+        target_lane_index: LaneIndex = None,
+        target_speed: float = None,
+        route: Route = None,
+    ):
         super().__init__(road, position, heading, speed)
         self.target_lane_index = target_lane_index or self.lane_index
         self.target_speed = target_speed or self.speed
@@ -52,9 +54,15 @@ class ControlledVehicle(Vehicle):
         :param vehicle: a vehicle
         :return: a new vehicle at the same dynamical state
         """
-        v = cls(road = vehicle.road, position = vehicle.position, heading=vehicle.heading, speed=vehicle.speed,
-                target_lane_index=vehicle.target_lane_index, target_speed=vehicle.target_speed,
-                route=vehicle.route)
+        v = cls(
+            road=vehicle.road,
+            position=vehicle.position,
+            heading=vehicle.heading,
+            speed=vehicle.speed,
+            target_lane_index=vehicle.target_lane_index,
+            target_speed=vehicle.target_speed,
+            route=vehicle.route,
+        )
         return v
 
     def plan_route_to(self, destination: str) -> "ControlledVehicle":
@@ -68,7 +76,9 @@ class ControlledVehicle(Vehicle):
         except KeyError:
             path = []
         if path:
-            self.route = [self.lane_index] + [(path[i], path[i + 1], None) for i in range(len(path) - 1)]
+            self.route = [self.lane_index] + [
+                (path[i], path[i + 1], None) for i in range(len(path) - 1)
+            ]
         else:
             self.route = [self.lane_index]
         return self
@@ -89,27 +99,45 @@ class ControlledVehicle(Vehicle):
             self.target_speed -= self.DELTA_SPEED
         elif action == "LANE_RIGHT":
             _from, _to, _id = self.target_lane_index
-            target_lane_index = _from, _to, np.clip(_id + 1, 0, len(self.road.network.graph[_from][_to]) - 1)
-            if self.road.network.get_lane(target_lane_index).is_reachable_from(self.position):
+            target_lane_index = (
+                _from,
+                _to,
+                np.clip(_id + 1, 0, len(self.road.network.graph[_from][_to]) - 1),
+            )
+            if self.road.network.get_lane(target_lane_index).is_reachable_from(
+                self.position
+            ):
                 self.target_lane_index = target_lane_index
         elif action == "LANE_LEFT":
             _from, _to, _id = self.target_lane_index
-            target_lane_index = _from, _to, np.clip(_id - 1, 0, len(self.road.network.graph[_from][_to]) - 1)
-            if self.road.network.get_lane(target_lane_index).is_reachable_from(self.position):
+            target_lane_index = (
+                _from,
+                _to,
+                np.clip(_id - 1, 0, len(self.road.network.graph[_from][_to]) - 1),
+            )
+            if self.road.network.get_lane(target_lane_index).is_reachable_from(
+                self.position
+            ):
                 self.target_lane_index = target_lane_index
 
-        action = {"steering": self.steering_control(self.target_lane_index),
-                  "acceleration": self.speed_control(self.target_speed)}
-        action['steering'] = np.clip(action['steering'], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE)
+        action = {
+            "steering": self.steering_control(self.target_lane_index),
+            "acceleration": self.speed_control(self.target_speed),
+        }
+        action["steering"] = np.clip(
+            action["steering"], -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
+        )
         super().act(action)
 
     def follow_road(self) -> None:
         """At the end of a lane, automatically switch to a next one."""
         if self.road.network.get_lane(self.target_lane_index).after_end(self.position):
-            self.target_lane_index = self.road.network.next_lane(self.target_lane_index,
-                                                                 route=self.route,
-                                                                 position=self.position,
-                                                                 np_random=self.road.np_random)
+            self.target_lane_index = self.road.network.next_lane(
+                self.target_lane_index,
+                route=self.route,
+                position=self.position,
+                np_random=self.road.np_random,
+            )
 
     def steering_control(self, target_lane_index: LaneIndex) -> float:
         """
@@ -129,16 +157,29 @@ class ControlledVehicle(Vehicle):
         lane_future_heading = target_lane.heading_at(lane_next_coords)
 
         # Lateral position control
-        lateral_speed_command = - self.KP_LATERAL * lane_coords[1]
+        lateral_speed_command = -self.KP_LATERAL * lane_coords[1]
         # Lateral speed to heading
-        heading_command = np.arcsin(np.clip(lateral_speed_command / utils.not_zero(self.speed), -1, 1))
-        heading_ref = lane_future_heading + np.clip(heading_command, -np.pi/4, np.pi/4)
+        heading_command = np.arcsin(
+            np.clip(lateral_speed_command / utils.not_zero(self.speed), -1, 1)
+        )
+        heading_ref = lane_future_heading + np.clip(
+            heading_command, -np.pi / 4, np.pi / 4
+        )
         # Heading control
-        heading_rate_command = self.KP_HEADING * utils.wrap_to_pi(heading_ref - self.heading)
+        heading_rate_command = self.KP_HEADING * utils.wrap_to_pi(
+            heading_ref - self.heading
+        )
         # Heading rate to steering angle
-        steering_angle = np.arcsin(np.clip(self.LENGTH / 2 / utils.not_zero(self.speed) * heading_rate_command,
-                                           -1, 1))
-        steering_angle = np.clip(steering_angle, -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE)
+        steering_angle = np.arcsin(
+            np.clip(
+                self.LENGTH / 2 / utils.not_zero(self.speed) * heading_rate_command,
+                -1,
+                1,
+            )
+        )
+        steering_angle = np.clip(
+            steering_angle, -self.MAX_STEERING_ANGLE, self.MAX_STEERING_ANGLE
+        )
         return float(steering_angle)
 
     def speed_control(self, target_speed: float) -> float:
@@ -165,8 +206,11 @@ class ControlledVehicle(Vehicle):
         else:
             return [self.route]
         next_destinations_from = list(next_destinations.keys())
-        routes = [self.route[0:index+1] + [(self.route[index][1], destination, self.route[index][2])]
-                  for destination in next_destinations_from]
+        routes = [
+            self.route[0 : index + 1]
+            + [(self.route[index][1], destination, self.route[index][2])]
+            for destination in next_destinations_from
+        ]
         return routes
 
     def set_route_at_intersection(self, _to: int) -> None:
@@ -184,7 +228,9 @@ class ControlledVehicle(Vehicle):
                 _to = self.road.np_random.randint(len(routes))
             self.route = routes[_to % len(routes)]
 
-    def predict_trajectory_constant_speed(self, times: np.ndarray) -> Tuple[List[np.ndarray], List[float]]:
+    def predict_trajectory_constant_speed(
+        self, times: np.ndarray
+    ) -> Tuple[List[np.ndarray], List[float]]:
         """
         Predict the future positions of the vehicle along its planned route, under constant speed
 
@@ -193,8 +239,16 @@ class ControlledVehicle(Vehicle):
         """
         coordinates = self.lane.local_coordinates(self.position)
         route = self.route or [self.lane_index]
-        return tuple(zip(*[self.road.network.position_heading_along_route(route, coordinates[0] + self.speed * t, 0)
-                     for t in times]))
+        return tuple(
+            zip(
+                *[
+                    self.road.network.position_heading_along_route(
+                        route, coordinates[0] + self.speed * t, 0
+                    )
+                    for t in times
+                ]
+            )
+        )
 
 
 class MDPVehicle(ControlledVehicle):
@@ -204,15 +258,19 @@ class MDPVehicle(ControlledVehicle):
     SPEED_MIN: float = 10  # [m/s]
     SPEED_MAX: float = 30  # [m/s]
 
-    def __init__(self,
-                 road: Road,
-                 position: List[float],
-                 heading: float = 0,
-                 speed: float = 0,
-                 target_lane_index: LaneIndex = None,
-                 target_speed: float = None,
-                 route: Route = None) -> None:
-        super().__init__(road, position, heading, speed, target_lane_index, target_speed, route)
+    def __init__(
+        self,
+        road: Road,
+        position: List[float],
+        heading: float = 0,
+        speed: float = 0,
+        target_lane_index: LaneIndex = None,
+        target_speed: float = None,
+        route: Route = None,
+    ) -> None:
+        super().__init__(
+            road, position, heading, speed, target_lane_index, target_speed, route
+        )
         self.speed_index = self.speed_to_index(self.target_speed)
         self.target_speed = self.index_to_speed(self.speed_index)
 
@@ -244,7 +302,9 @@ class MDPVehicle(ControlledVehicle):
         :return: the corresponding speed [m/s]
         """
         if self.SPEED_COUNT > 1:
-            return self.SPEED_MIN + index * (self.SPEED_MAX - self.SPEED_MIN) / (self.SPEED_COUNT - 1)
+            return self.SPEED_MIN + index * (self.SPEED_MAX - self.SPEED_MIN) / (
+                self.SPEED_COUNT - 1
+            )
         else:
             return self.SPEED_MIN
 
@@ -256,7 +316,9 @@ class MDPVehicle(ControlledVehicle):
         :return: the index of the closest speed allowed []
         """
         x = (speed - self.SPEED_MIN) / (self.SPEED_MAX - self.SPEED_MIN)
-        return np.int(np.clip(np.round(x * (self.SPEED_COUNT - 1)), 0, self.SPEED_COUNT - 1))
+        return np.int(
+            np.clip(np.round(x * (self.SPEED_COUNT - 1)), 0, self.SPEED_COUNT - 1)
+        )
 
     @classmethod
     def speed_to_index_default(cls, speed: float) -> int:
@@ -267,14 +329,23 @@ class MDPVehicle(ControlledVehicle):
         :return: the index of the closest speed allowed []
         """
         x = (speed - cls.SPEED_MIN) / (cls.SPEED_MAX - cls.SPEED_MIN)
-        return np.int(np.clip(np.round(x * (cls.SPEED_COUNT - 1)), 0, cls.SPEED_COUNT - 1))
+        return np.int(
+            np.clip(np.round(x * (cls.SPEED_COUNT - 1)), 0, cls.SPEED_COUNT - 1)
+        )
 
     @classmethod
     def get_speed_index(cls, vehicle: Vehicle) -> int:
-        return getattr(vehicle, "speed_index", cls.speed_to_index_default(vehicle.speed))
+        return getattr(
+            vehicle, "speed_index", cls.speed_to_index_default(vehicle.speed)
+        )
 
-    def predict_trajectory(self, actions: List, action_duration: float, trajectory_timestep: float, dt: float) \
-            -> List[ControlledVehicle]:
+    def predict_trajectory(
+        self,
+        actions: List,
+        action_duration: float,
+        trajectory_timestep: float,
+        dt: float,
+    ) -> List[ControlledVehicle]:
         """
         Predict the future trajectory of the vehicle given a sequence of actions.
 
@@ -301,17 +372,21 @@ class MDPVehicle(ControlledVehicle):
 class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
     KP_STEER = 15
-    STEER_TARGET_RF = 0.150 # Reduction factor to define a smaller target to reach.
-    def __init__(self, safety_layer:str=None, 
-                 lateral_ctrl:str='steer',
-                 store_profile:bool = True,
-                 **kwargs) -> None:
+    STEER_TARGET_RF = 0.150  # Reduction factor to define a smaller target to reach.
+
+    def __init__(
+        self,
+        safety_layer: str = None,
+        lateral_ctrl: str = "steer",
+        store_profile: bool = True,
+        **kwargs
+    ) -> None:
         """_summary_
 
         Args:
             safety_layer (_type_, optional): Specify the class used to ensure safety of the vehicle. Defaults to None.
-            lateral_ctrl (str, optional): Set `lateral_ctrl = 'steer'` for 1st-order response on the steering wheel dynamics and 
-                                            `lateral_ctrl = 'steer_vel'` for 2nd-order response to steering wheel based on steering velocity. 
+            lateral_ctrl (str, optional): Set `lateral_ctrl = 'steer'` for 1st-order response on the steering wheel dynamics and
+                                            `lateral_ctrl = 'steer_vel'` for 2nd-order response to steering wheel based on steering velocity.
                                             Defaults to 'steer'.
         """
         super().__init__(**kwargs)
@@ -324,36 +399,30 @@ class MDPLCVehicle(MDPVehicle):
         if store_profile:
             self.action_hist = []
             self.state_hist = []
-            
+
         # Addition state parameter store current steering state
         self.steering_angle = 0
-    
-    def to_dict(self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True) -> dict:
-        d = {
-            'presence': 1,
-            'x': self.position[0],
-            'y': self.position[1],
-            'vx': self.velocity[0],
-            'vy': self.velocity[1],
-            'heading': self.heading,
-            'cos_h': self.direction[0],
-            'sin_h': self.direction[1],
-            'cos_d': self.destination_direction[0],
-            'sin_d': self.destination_direction[1]
-        }
-        if not observe_intentions:
-            d["cos_d"] = d["sin_d"] = 0
-        
+
+        self.fg_params = {}
+
+    def to_dict(
+        self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True
+    ) -> dict:
+        d = super().to_dict(origin_vehicle, observe_intentions)
+
+        if self.lateral_ctrl == "steer_vel":
+            d["steering_angle"] = self.steering_angle
+
         # set heading relative to the lane heading
         vlocal_pos = self.lane.local_coordinates(self.position)
-        d['heading'] = self.lane.heading_at(vlocal_pos[0]) - d['heading']
+        d["heading"] = self.lane.heading_at(vlocal_pos[0]) - d["heading"]
 
         if origin_vehicle:
             origin_dict = origin_vehicle.to_dict()
-            for key in ['x', 'y', 'vx', 'vy', 'heading']:
+            for key in ["heading"]:
                 d[key] -= origin_dict[key]
         return d
-    
+
     def steering_control(self, target_lane_index: LaneIndex) -> float:
         """Generate a steering velocity using proportional controller. KP must be tune appropriately for this process.
 
@@ -364,10 +433,10 @@ class MDPLCVehicle(MDPVehicle):
             float: steering control or steering velocity control
         """
         steering_ref = super().steering_control(target_lane_index)
-        if self.lateral_ctrl == 'steer_vel':
-            steering_ref = steering_ref*self.STEER_TARGET_RF 
+        if self.lateral_ctrl == "steer_vel":
+            steering_ref = steering_ref * self.STEER_TARGET_RF
             return self.KP_STEER * (steering_ref - self.steering_angle)
-        
+
         return steering_ref
 
     def step(self, dt: float) -> None:
@@ -384,38 +453,52 @@ class MDPLCVehicle(MDPVehicle):
         :param dt: timestep of integration of the model [s]
         """
 
-        state_var:dict = {"t_step":self.t_step}
-        if self.lateral_ctrl == 'steer_vel':
+        state_var: dict = {"t_step": self.t_step}
+        if self.lateral_ctrl == "steer_vel":
             self.clip_actions()
-            self.steering_angle += self.action['steering'] * dt
+            self.steering_angle += self.action["steering"] * dt
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
-            v = self.speed * np.array([np.cos(self.heading + beta),
-                                    np.sin(self.heading + beta)])
+            v = self.speed * np.array(
+                [np.cos(self.heading + beta), np.sin(self.heading + beta)]
+            )
             self.position += v * dt
-            self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2)
-            self.speed += self.action['acceleration'] * dt
 
-            state_var.update({"steering_angle":self.steering_angle})
-            
+            d_heading = self.speed * np.sin(beta) / (self.LENGTH / 2)
+            self.heading += d_heading
+
+            self.speed += self.action["acceleration"] * dt
+
+            self.fg_params = {
+                "f": {
+                    "x": self.velocity[0],
+                    "y": self.velocity[1],
+                    "heading": d_heading,
+                },
+                "g": {
+                    "vx": np.cos(self.heading + beta),
+                    "vy": np.sin(self.heading + beta),
+                },
+            }
+
             self.on_state_update()
         else:
             super().step(dt)
-            state_var.update({"steering_angle":self.action['steering']})
-                  
+            state_var.update({"steering_angle": self.action["steering"]})
+
         if self.action_hist is not None:
             action_rec = self.action
             action_rec["t_step"] = self.t_step
-            action_rec["lc_action"] = 1 # 'IDLE': 1
+            action_rec["lc_action"] = 1  # 'IDLE': 1
             if self.lane_index != self.target_lane_index:
                 # lc_actions: 'LANE_LEFT': 0, 'LANE_RIGHT': 2,
                 # lane_index: left:0, right:1
                 _f, _t, _id = self.target_lane_index
                 action_rec["lc_action"] = 0 if _id == 0 else 2
             self.action_hist.append(self.action)
-        
+
         if self.state_hist is not None:
             state_var.update(self.to_dict())
-            state_var.update({"speed":self.speed})
+            state_var.update({"speed": self.speed})
             self.state_hist.append(state_var)
-        
+
         self.t_step += dt

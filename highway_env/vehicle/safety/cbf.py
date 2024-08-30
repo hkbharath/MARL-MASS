@@ -2,15 +2,25 @@ import numpy as np
 from cvxopt import matrix
 from cvxopt import solvers
 
-class CBFType():
-    def __init__(self, action_size):
-        # P representes the coefficients of the input variables x^2. 
-        # Since we aim to minimise both velocity at first only one value is set to 1. 
-        # For both values set both values to 1. 
-        self.P = matrix(np.diag(np.ones(action_size)), tc='d')
+
+class CBFType:
+
+    STATE_SPACE = ["x", "y", "vx", "vy", "heading", "steering_angle"]
+
+    ACCELERATION_RANGE = (-3, 3)
+    """Acceleration range: [-x, x], in m/s²."""
+
+    def __init__(self, action_size, action_bound):
+        # P representes the coefficients of the input variables x^2.
+        # Since we aim to minimise both velocity at first only one value is set to 1.
+        # For both values set both values to 1.
+        self.action_size = action_size
+        self.action_bound = action_bound
+
+        self.P = matrix(np.diag(np.ones(self.action_size)), tc="d")
 
         # q is used to define coefficients of x1x2 terms. In our optimisation problem these coefficients are 0.
-        self.q = matrix(np.zeros(action_size), tc='d')
+        self.q = matrix(np.zeros(self.action_size), tc="d")
         self.gamma_b = 0.5
         self.kd = 1
         self.TAU = 1.2
@@ -25,19 +35,19 @@ class CBFType():
             NotImplementedError: Must be implemented in the extended class
         """
         raise NotImplementedError("subclass must implement get_G")
-    
+
     def get_h(self, f, g, x, u_rl, std):
         """
-        Args: 
+        Args:
             f: matrix representing unactuated dynamics
             g: matrix representing actuated dynamics
             x: state variables
             std: standard deviation ()?
-        
+
         Raises:
             NotImplementedError: Must be implemented in the extended class
 
-        Returns: 
+        Returns:
             CBF constraints
         """
         raise NotImplementedError("subclass must implement get_G")
@@ -51,61 +61,87 @@ class CBFType():
         #     print("Error in QP")
         return
 
-    def control_barrier(self, u_rl, f, g, x, std):
-        u_rl = np.squeeze(u_rl)
-        #Set up Quadratic Program to satisfy CBF
-        
+    def check_dims(self, G: np.ndarray, h: np.ndarray):
+        """Check dimensions of G and h matricies
+
+        Args:
+            G (np.array): coefficients multiplied with inpput `u`
+            h (np.array): constraint bounding values
+        """
+        raise NotImplementedError("subclass must implement check_dims")
+
+    def control_barrier(self, u_ll, f, g, x, std):
+        u_ll = np.squeeze(u_ll)
+        # Set up Quadratic Program to satisfy CBF
+
         G = self.get_G(g=g)
-        h = self.get_h(f=f, g=g, x=x, u_rl=u_rl, std=std)
-        
-        #Convert numpy arrays to cvx matrices to set up QP
-        G = matrix(G,tc='d')
-        h = matrix(h,tc='d')
+        h = self.get_h(f=f, g=g, x=x, u_rl=u_ll, std=std)
 
-        solvers.options['show_progress'] = False
+        # Convert numpy arrays to cvx matrices to set up QP
+        G = matrix(G, tc="d")
+        h = matrix(h, tc="d")
+
+        solvers.options["show_progress"] = False
         sol = solvers.qp(self.P, self.q, G, h)
-        u_bar = sol['x']
+        u_bar = sol["x"]
 
-        u_safe = np.add(np.squeeze(u_rl), np.squeeze(u_bar[0]))
+        u_safe = np.add(np.squeeze(u_ll), np.squeeze(u_bar[0]))
         u_safe = self.check_bounds(u_safe)
 
         return np.expand_dims(np.array(u_safe), 0)
 
 
 class CBF_AV_Longitudinal(CBFType):
-    """Single agent CBF for AVs defined in Wang 2020, but only for longitudinal control. This CBF consideres states from two vehicles. 
-    The vehicle state space must contain 6 variables, presence, x, y, vx, vy, heading, as defined in MDPLCVehicle.  
+    """Single agent CBF for AVs defined in Wang 2020, but only for longitudinal control. This CBF consideres states from two vehicles
+    and defines three constraints. The first constraint is the cbf constraint for longitudinal motion.
+    Remaining two constraints limit the control inputs to allowed action_bounds.
+    The vehicle state space must contain 6 variables, specified in CBFType.STATE_SPACE
 
     Args:
         int: action size for setting up CBF matrices
         np.array: action bounds
     """
-    def __init__(self, action_size, action_bound):
-        super().__init__(action_size)
-        self.action_bound = action_bound
-        
-        # Supporting matrix
-        self.dx = np.ravel(np.array([[0, -1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])) # \delta x between two vehicle is evaluated from this matrix
-        self.dvx = np.ravel(np.array([[0, 0, 0, -1, 0, 0], [0, 0, 0, 1, 0, 0]])) # \delta vx between two vehicle is evaluated from this matrix
 
-        # TODO: check the dimenstions of the matrxi multiplication.
-        # h_lon
+    def __init__(self, action_size, action_bound):
+        super().__init__(action_size, action_bound)
+
+        # Supporting matrix
+        self.dx = np.ravel(
+            np.array([[0, -1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])
+        )  # \delta x between two vehicle is evaluated from this matrix
+        self.dvx = np.ravel(
+            np.array([[0, 0, 0, -1, 0, 0], [0, 0, 0, 1, 0, 0]])
+        )  # \delta vx between two vehicle is evaluated from this matrix
+
+        # TODO: check the dimenstions of the matrix multiplication.
+        # Logitudinal CBF: h_lon
         self.p_lon = self.dx - self.TAU * self.dvx
         self.q_lon = 0
 
     def get_G(self, g):
         # TODO: check matrix dimentions, check the size of return value.
-        G = np.array([-np.dot(self.p_lon,g), [1, 0], [-1, 0]])
-        G = np.transpose(G)
+        G = np.concatenate((-np.dot(self.p_lon.T, g), [[1, 0]], [[-1, 0]]))
+        # G = np.transpose(G)
+
+        assert (G.shape, (3, self.action_size))
         return G
-    
+
     def get_h(self, f, g, x, u_rl, std=0):
-        # TODO: check matrix dimentions
-        h = np.array([np.dot(self.p_lon,f) + (self.gamma_b - 1)*np.dot(self.p_lon,x) + self.gamma_b*self.q_lon + np.dot(self.p_lon,g)*u_rl, 
-                  self.action_bound,
-                  self.action_bound])
+        # TODO: check matrix dimentions: looks good for now
+        h = np.array(
+            [
+                np.dot(self.p_lon, f)
+                + (self.gamma_b - 1) * np.dot(self.p_lon, x)
+                + self.gamma_b * self.q_lon
+                + np.dot(np.squeeze(np.dot(self.p_lon.T, g)), u_rl),
+                self.action_bound[0],
+                self.action_bound[0],
+            ]
+        )
+        assert (h.shape, (3, 1))
         return h
-    
+
+
 class CBF_AV(CBFType):
     """Single agent CBF for AVs defined in Wang 2020.
 
@@ -113,10 +149,10 @@ class CBF_AV(CBFType):
         int: action size for setting up CBF matrices
         np.array: action bounds
     """
+
     def __init__(self, action_size, action_bound):
-        super().__init__(action_size)
-        self.P = matrix(np.diag([1., 1]), tc='d')
-        self.action_bound = action_bound
+        super().__init__(action_size, action_bound)
+        self.P = matrix(np.diag([1.0, 1]), tc="d")
         # TODO: Redefine these calues
         self.H1 = np.array([0, 0, 0, 0, 0, 0, 1, 0.001, 0, -1, -0.001, 0, 0, 0, 0])
         self.H2 = np.array([0, 0, 0, 0, 0, 0, 1, 0.001, 0, -1, 0.001, 0, 0, 0, 0])
@@ -126,39 +162,91 @@ class CBF_AV(CBFType):
         self.H6 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.001, 0, -1, -0.001, 0])
         self.H7 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -0.001, 0, -1, 0.001, 0])
         self.H8 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -0.001, 0, -1, -0.001, 0])
-        self.F = -2.
-    
+        self.F = -2.0
+
     def get_G(self, g):
         # TODO: redefine this
-        G = np.array([[-np.dot(self.H1,g), -np.dot(self.H2,g), -np.dot(self.H3,g), -np.dot(self.H4,g), -np.dot(self.H5,g), 
-                   -np.dot(self.H6,g), -np.dot(self.H7,g), -np.dot(self.H8,g), 1, -1] , [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0]])
+        G = np.array(
+            [
+                [
+                    -np.dot(self.H1, g),
+                    -np.dot(self.H2, g),
+                    -np.dot(self.H3, g),
+                    -np.dot(self.H4, g),
+                    -np.dot(self.H5, g),
+                    -np.dot(self.H6, g),
+                    -np.dot(self.H7, g),
+                    -np.dot(self.H8, g),
+                    1,
+                    -1,
+                ],
+                [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0],
+            ]
+        )
         G = np.transpose(G)
         return G
-    
+
     def get_h(self, f, g, x, u_rl, std):
         # TODO: redefine this
-        h = np.array([self.gamma_b*self.F + np.dot(self.H1,f) + np.dot(self.H1,g)*u_rl - (1-self.gamma_b)*np.dot(self.H1,x) - self.kd*np.dot(np.abs(self.H1),std),
-                  self.gamma_b*self.F + np.dot(self.H2,f) + np.dot(self.H2,g)*u_rl - (1-self.gamma_b)*np.dot(self.H2,x) - self.kd*np.dot(np.abs(self.H2),std),
-                  self.gamma_b*self.F + np.dot(self.H3,f) + np.dot(self.H3,g)*u_rl - (1-self.gamma_b)*np.dot(self.H3,x) - self.kd*np.dot(np.abs(self.H3),std),
-                  self.gamma_b*self.F + np.dot(self.H4,f) + np.dot(self.H4,g)*u_rl - (1-self.gamma_b)*np.dot(self.H4,x) - self.kd*np.dot(np.abs(self.H4),std),
-                  self.gamma_b*self.F + np.dot(self.H5,f) + np.dot(self.H5,g)*u_rl - (1-self.gamma_b)*np.dot(self.H5,x) - self.kd*np.dot(np.abs(self.H5),std),
-                  self.gamma_b*self.F + np.dot(self.H6,f) + np.dot(self.H6,g)*u_rl - (1-self.gamma_b)*np.dot(self.H6,x) - self.kd*np.dot(np.abs(self.H6),std),
-                  self.gamma_b*self.F + np.dot(self.H7,f) + np.dot(self.H7,g)*u_rl - (1-self.gamma_b)*np.dot(self.H7,x) - self.kd*np.dot(np.abs(self.H7),std),
-                  self.gamma_b*self.F + np.dot(self.H8,f) + np.dot(self.H8,g)*u_rl - (1-self.gamma_b)*np.dot(self.H8,x) - self.kd*np.dot(np.abs(self.H8),std),
-                  -u_rl + self.action_bound,
-                  u_rl + self.action_bound])
+        h = np.array(
+            [
+                self.gamma_b * self.F
+                + np.dot(self.H1, f)
+                + np.dot(self.H1, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H1, x)
+                - self.kd * np.dot(np.abs(self.H1), std),
+                self.gamma_b * self.F
+                + np.dot(self.H2, f)
+                + np.dot(self.H2, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H2, x)
+                - self.kd * np.dot(np.abs(self.H2), std),
+                self.gamma_b * self.F
+                + np.dot(self.H3, f)
+                + np.dot(self.H3, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H3, x)
+                - self.kd * np.dot(np.abs(self.H3), std),
+                self.gamma_b * self.F
+                + np.dot(self.H4, f)
+                + np.dot(self.H4, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H4, x)
+                - self.kd * np.dot(np.abs(self.H4), std),
+                self.gamma_b * self.F
+                + np.dot(self.H5, f)
+                + np.dot(self.H5, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H5, x)
+                - self.kd * np.dot(np.abs(self.H5), std),
+                self.gamma_b * self.F
+                + np.dot(self.H6, f)
+                + np.dot(self.H6, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H6, x)
+                - self.kd * np.dot(np.abs(self.H6), std),
+                self.gamma_b * self.F
+                + np.dot(self.H7, f)
+                + np.dot(self.H7, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H7, x)
+                - self.kd * np.dot(np.abs(self.H7), std),
+                self.gamma_b * self.F
+                + np.dot(self.H8, f)
+                + np.dot(self.H8, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H8, x)
+                - self.kd * np.dot(np.abs(self.H8), std),
+                -u_rl + self.action_bound,
+                u_rl + self.action_bound,
+            ]
+        )
         return h
-    
+
+
 class CBF_CAV(CBFType):
     """CBF for CAVs solved from Chen et al. 2019. This is used only for reference at this moment.
 
     Args:
         CBF_CAV(int): action size for setting up CBF matrices
     """
+
     def __init__(self, action_size, action_bound):
-        super().__init__(action_size)
-        self.P = matrix(np.diag([1., 1]), tc='d')
-        self.action_bound = action_bound
+        super().__init__(action_size, action_bound)
+        self.P = matrix(np.diag([1.0, 1]), tc="d")
 
         """
         The H function below represent constraints to maintain 2m distance from the vehicle in front and back.
@@ -174,29 +262,81 @@ class CBF_CAV(CBFType):
         self.H6 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0.001, 0, -1, -0.001, 0])
         self.H7 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -0.001, 0, -1, 0.001, 0])
         self.H8 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -0.001, 0, -1, -0.001, 0])
-        self.F = -2.
-    
+        self.F = -2.0
+
     def get_G(self, g):
-        G = np.array([[-np.dot(self.H1,g), -np.dot(self.H2,g), -np.dot(self.H3,g), -np.dot(self.H4,g), -np.dot(self.H5,g), 
-                   -np.dot(self.H6,g), -np.dot(self.H7,g), -np.dot(self.H8,g), 1, -1] , [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0]])
+        G = np.array(
+            [
+                [
+                    -np.dot(self.H1, g),
+                    -np.dot(self.H2, g),
+                    -np.dot(self.H3, g),
+                    -np.dot(self.H4, g),
+                    -np.dot(self.H5, g),
+                    -np.dot(self.H6, g),
+                    -np.dot(self.H7, g),
+                    -np.dot(self.H8, g),
+                    1,
+                    -1,
+                ],
+                [-1, -1, -1, -1, -1, -1, -1, -1, 0, 0],
+            ]
+        )
         G = np.transpose(G)
         return G
-    
+
     def get_h(self, f, g, x, u_rl, std):
-        h = np.array([self.gamma_b*self.F + np.dot(self.H1,f) + np.dot(self.H1,g)*u_rl - (1-self.gamma_b)*np.dot(self.H1,x) - self.kd*np.dot(np.abs(self.H1),std),
-                  self.gamma_b*self.F + np.dot(self.H2,f) + np.dot(self.H2,g)*u_rl - (1-self.gamma_b)*np.dot(self.H2,x) - self.kd*np.dot(np.abs(self.H2),std),
-                  self.gamma_b*self.F + np.dot(self.H3,f) + np.dot(self.H3,g)*u_rl - (1-self.gamma_b)*np.dot(self.H3,x) - self.kd*np.dot(np.abs(self.H3),std),
-                  self.gamma_b*self.F + np.dot(self.H4,f) + np.dot(self.H4,g)*u_rl - (1-self.gamma_b)*np.dot(self.H4,x) - self.kd*np.dot(np.abs(self.H4),std),
-                  self.gamma_b*self.F + np.dot(self.H5,f) + np.dot(self.H5,g)*u_rl - (1-self.gamma_b)*np.dot(self.H5,x) - self.kd*np.dot(np.abs(self.H5),std),
-                  self.gamma_b*self.F + np.dot(self.H6,f) + np.dot(self.H6,g)*u_rl - (1-self.gamma_b)*np.dot(self.H6,x) - self.kd*np.dot(np.abs(self.H6),std),
-                  self.gamma_b*self.F + np.dot(self.H7,f) + np.dot(self.H7,g)*u_rl - (1-self.gamma_b)*np.dot(self.H7,x) - self.kd*np.dot(np.abs(self.H7),std),
-                  self.gamma_b*self.F + np.dot(self.H8,f) + np.dot(self.H8,g)*u_rl - (1-self.gamma_b)*np.dot(self.H8,x) - self.kd*np.dot(np.abs(self.H8),std),
-                  -u_rl + self.action_bound,
-                  u_rl + self.action_bound])
+        h = np.array(
+            [
+                self.gamma_b * self.F
+                + np.dot(self.H1, f)
+                + np.dot(self.H1, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H1, x)
+                - self.kd * np.dot(np.abs(self.H1), std),
+                self.gamma_b * self.F
+                + np.dot(self.H2, f)
+                + np.dot(self.H2, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H2, x)
+                - self.kd * np.dot(np.abs(self.H2), std),
+                self.gamma_b * self.F
+                + np.dot(self.H3, f)
+                + np.dot(self.H3, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H3, x)
+                - self.kd * np.dot(np.abs(self.H3), std),
+                self.gamma_b * self.F
+                + np.dot(self.H4, f)
+                + np.dot(self.H4, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H4, x)
+                - self.kd * np.dot(np.abs(self.H4), std),
+                self.gamma_b * self.F
+                + np.dot(self.H5, f)
+                + np.dot(self.H5, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H5, x)
+                - self.kd * np.dot(np.abs(self.H5), std),
+                self.gamma_b * self.F
+                + np.dot(self.H6, f)
+                + np.dot(self.H6, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H6, x)
+                - self.kd * np.dot(np.abs(self.H6), std),
+                self.gamma_b * self.F
+                + np.dot(self.H7, f)
+                + np.dot(self.H7, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H7, x)
+                - self.kd * np.dot(np.abs(self.H7), std),
+                self.gamma_b * self.F
+                + np.dot(self.H8, f)
+                + np.dot(self.H8, g) * u_rl
+                - (1 - self.gamma_b) * np.dot(self.H8, x)
+                - self.kd * np.dot(np.abs(self.H8), std),
+                -u_rl + self.action_bound,
+                u_rl + self.action_bound,
+            ]
+        )
         return h
 
-def cbf_factory(cbf_type:str, **kwargs) -> CBFType:
-       
+
+def cbf_factory(cbf_type: str, **kwargs) -> CBFType:
+
     if cbf_type == "avlon":
         return CBF_AV_Longitudinal(**kwargs)
     elif cbf_type == "av":
