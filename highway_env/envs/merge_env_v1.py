@@ -413,6 +413,6 @@ register(
 )
 
 register(
-    id='merge-multi-agent-v0.5',
+    id='merge-multi-agent-v05',
     entry_point='highway_env.envs:MergeEnvMARLSteerVel',
 )
