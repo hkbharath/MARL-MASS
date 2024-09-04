@@ -169,7 +169,7 @@ def init_wandb(config, project_name: str, exp_name: str):
             return None
 
         # start a new wandb run to track this script
-        wandb_var.init(
+        run = wandb_var.init(
             # set the wandb project where this run will be logged
             project=project_name,
             name=exp_name,
@@ -177,7 +177,7 @@ def init_wandb(config, project_name: str, exp_name: str):
             config=config,
         )
 
-        return wandb_var
+        return run
     except ImportError:
         print(
             "wandb not available logging parameters in the terminal only."

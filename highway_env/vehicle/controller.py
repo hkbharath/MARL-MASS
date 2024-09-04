@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Any
 
 import numpy as np
 import copy
@@ -6,6 +6,7 @@ from highway_env import utils
 from highway_env.road.road import Road, LaneIndex, Route
 from highway_env.types import Vector
 from highway_env.vehicle.kinematics import Vehicle
+from highway_env.vehicle.safety.decentral_layer import safety_layer
 
 
 class ControlledVehicle(Vehicle):
@@ -374,6 +375,11 @@ class MDPLCVehicle(MDPVehicle):
     KP_STEER = 15
     STEER_TARGET_RF = 0.150  # Reduction factor to define a smaller target to reach.
 
+    MAX_ACC: float = 6 # [m/s2] 0-100 km/h in 4.63s
+    MIN_ACC: float = -12.5 # [m/s2] to safety maintain 1.2s time headway to reach from max speed to lowest speed.
+
+    PERCEPTION_DIST = 6 * MDPVehicle.SPEED_MAX
+
     def __init__(
         self,
         safety_layer: str = None,
@@ -403,7 +409,7 @@ class MDPLCVehicle(MDPVehicle):
         # Addition state parameter store current steering state
         self.steering_angle = 0
 
-        self.fg_params = {}
+        self.fg_params = None
 
     def to_dict(
         self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True
@@ -438,7 +444,11 @@ class MDPLCVehicle(MDPVehicle):
             return self.KP_STEER * (steering_ref - self.steering_angle)
 
         return steering_ref
-
+    
+    def clip_actions(self) -> None:
+        super().clip_actions()
+        self.action["acceleration"] = np.clip(self.action["acceleration"], self.MIN_ACC, self.MAX_ACC)
+    
     def step(self, dt: float) -> None:
         """
         Propagate the vehicle state given its actions.
@@ -453,10 +463,14 @@ class MDPLCVehicle(MDPVehicle):
         :param dt: timestep of integration of the model [s]
         """
 
+        safe_action, safe_diff = None, None
+
         state_var: dict = {"t_step": self.t_step}
         if self.lateral_ctrl == "steer_vel":
             self.clip_actions()
-            self.steering_angle += self.action["steering"] * dt
+            safe_action, safe_diff = self.safe_action(dt)
+
+            self.steering_angle += safe_action["steering"] * dt
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
             v = self.speed * np.array(
                 [np.cos(self.heading + beta), np.sin(self.heading + beta)]
@@ -466,7 +480,7 @@ class MDPLCVehicle(MDPVehicle):
             d_heading = self.speed * np.sin(beta) / (self.LENGTH / 2)
             self.heading += d_heading
 
-            self.speed += self.action["acceleration"] * dt
+            self.speed += safe_action["acceleration"] * dt
 
             self.fg_params = {
                 "f": {
@@ -487,6 +501,9 @@ class MDPLCVehicle(MDPVehicle):
 
         if self.action_hist is not None:
             action_rec = self.action
+            if safe_action is not None:
+                action_rec = safe_action
+            action_rec["ull_acceleration"] = self.action["acceleration"]
             action_rec["t_step"] = self.t_step
             action_rec["lc_action"] = 1  # 'IDLE': 1
             if self.lane_index != self.target_lane_index:
@@ -494,7 +511,9 @@ class MDPLCVehicle(MDPVehicle):
                 # lane_index: left:0, right:1
                 _f, _t, _id = self.target_lane_index
                 action_rec["lc_action"] = 0 if _id == 0 else 2
-            self.action_hist.append(self.action)
+            if safe_diff is not None: 
+                action_rec["safe_diff"] = safe_diff
+            self.action_hist.append(action_rec)
 
         if self.state_hist is not None:
             state_var.update(self.to_dict())
@@ -502,3 +521,18 @@ class MDPLCVehicle(MDPVehicle):
             self.state_hist.append(state_var)
 
         self.t_step += dt
+    
+    def safe_action(self, dt:float) -> Any:
+        if (self.safety_layer in ["none", "priority"] 
+            or self.lateral_ctrl != "steer_vel"
+            or "cbf-" not in self.safety_layer
+            or self.fg_params is None):
+            return self.action, None
+        
+        safety_type = self.safety_layer.split("-")[1]
+        return safety_layer(safety_type=safety_type, 
+                            road=self.road, 
+                            vehicle=self, 
+                            dt=dt, 
+                            perception_dist=self.PERCEPTION_DIST, 
+                            action=self.action)
