@@ -20,7 +20,8 @@ class CBFTestEnv(AbstractEnv):
     """
 
     n_a = 5
-    VEHICLE_SPEEDS = [25, 15]
+    VEHICLE_SPEEDS = [25, 20]
+    USE_RANDOM = True
     @classmethod
     def default_config(cls) -> dict:
         config = super().default_config()
@@ -94,7 +95,9 @@ class CBFTestEnv(AbstractEnv):
         self.controlled_vehicles = []
 
         init_pos = road.network.get_lane(("a", "b", init_lane)).position(25, 0)
-        init_speed = np.random.rand() * 2 + self.VEHICLE_SPEEDS[0]
+        init_speed = self.VEHICLE_SPEEDS[0]
+        if self.USE_RANDOM:
+            init_speed = init_speed + np.random.rand() * 2
 
         safety_layer = self.config["safety_guarantee"]
         lateral_ctrl = self.config["lateral_control"]
@@ -111,7 +114,9 @@ class CBFTestEnv(AbstractEnv):
 
         other_vehicles_type = class_from_path(self.config["other_vehicles_type"])
         init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(65, 0)
-        init_speed_o = np.random.rand() * 2 + self.VEHICLE_SPEEDS[1]
+        init_speed_o = self.VEHICLE_SPEEDS[1]
+        if self.USE_RANDOM:
+            init_speed_o = init_speed_o + np.random.rand() * 2
 
         other_vehicle = other_vehicles_type(
             road=road, 

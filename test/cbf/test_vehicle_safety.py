@@ -53,10 +53,10 @@ def init_logging(config: dict, args: argparse.Namespace, uid:str, sfx) -> Any:
     project_name = "Safety layer"
     exp_name = args.exp_name + "-" + args.safety + "-" + args.test_type
     if args.extreme:
-        exp_name = exp_name + "-extr-"
+        exp_name = exp_name + "-extr"
     if args.safety != "none":
         exp_name = exp_name + "-g:" + str(args.gamma)
-    exp_name = exp_name + sfx
+    exp_name = exp_name + "-" + sfx
 
     config["run_id"] = uid
     
@@ -75,6 +75,7 @@ def log_profile(
         # define inputs
         wandb_run.define_metric("action.steering", step_metric="t_step")
         wandb_run.define_metric("action.acceleration", step_metric="t_step")
+        wandb_run.define_metric("action.ull_acceleration", step_metric="t_step")
         wandb_run.define_metric("action.lc_action", step_metric="t_step")
         wandb_run.define_metric("action.safe_diff.steering", step_metric="t_step")
         wandb_run.define_metric("action.safe_diff.acceleration", step_metric="t_step")
@@ -85,6 +86,8 @@ def log_profile(
         wandb_run.define_metric("state.speed", step_metric="t_step")
         wandb_run.define_metric("state.y", step_metric="t_step")
         wandb_run.define_metric("state.x", step_metric="t_step")
+        wandb_run.define_metric("state.vx", step_metric="t_step")
+        wandb_run.define_metric("state.vy", step_metric="t_step")
 
         for action_rec, state_rec in zip(action_hist, state_hist):
             log_entry = {
@@ -103,6 +106,7 @@ def main():
 
     if args.extreme:
         CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
+        CBFTestEnv.USE_RANDOM = False
         
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
