@@ -29,7 +29,7 @@ class CBFType:
         # Additional size is used to assist optimisation process
         self.u_size = self.action_size + 1
         np_P = np.diag(np.ones(self.u_size))
-        np_P[self.u_size-1][self.u_size-1] = 1e18
+        np_P[self.u_size - 1][self.u_size - 1] = 1e18
         self.P = matrix(np_P, tc="d")
 
         # q is used to define coefficients of x1x2 terms. In our optimisation problem these coefficients are 0.
@@ -64,10 +64,14 @@ class CBFType:
         raise NotImplementedError("subclass must implement get_G")
 
     def check_bounds(self, u_safe):
-        if (u_safe[0] - 0.001 > self.action_bound[0][1]):
-            raise ValueError("Error in QP. Invalid accceleration: {0}".format(u_safe[0]))
-        elif (u_safe[0] + 0.001 < self.action_bound[0][0]):
-            raise ValueError("Error in QP. Invalid accceleration: {0}".format(u_safe[0]))
+        if u_safe[0] - 0.001 > self.action_bound[0][1]:
+            raise ValueError(
+                "Error in QP. Invalid accceleration: {0}".format(u_safe[0])
+            )
+        elif u_safe[0] + 0.001 < self.action_bound[0][0]:
+            raise ValueError(
+                "Error in QP. Invalid accceleration: {0}".format(u_safe[0])
+            )
 
     def check_dims(self, G: np.ndarray, h: np.ndarray):
         """Check dimensions of G and h matricies
@@ -101,12 +105,13 @@ class CBFType:
         u_safe = np.add(np.squeeze(u_ll), np.squeeze(u_bar)[:2])
         self.check_bounds(u_safe)
 
-        self.log_debug_info(f,g,x, u_safe)
+        self.log_debug_info(f, g, x, u_safe)
 
         return np.array(u_safe)
-    
+
     def log_debug_info(self, f, g, x, u_safe):
         pass
+
 
 class CBF_AV_Longitudinal(CBFType):
     """Single agent CBF for AVs defined in Wang 2020, but only for longitudinal control. This CBF consideres states from two vehicles
@@ -124,27 +129,25 @@ class CBF_AV_Longitudinal(CBFType):
 
         # Supporting matrix
         # \delta x between two vehicle is evaluated from this matrix
-        self.dx = np.ravel(
-            np.array([[-1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]])
-        )
+        self.dx = np.ravel(np.array([[-1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]]))
 
         # \delta vx between two vehicle is evaluated from this matrix
-        self.dvx = np.ravel(
-            np.array([[0, 0, 1, 0, 0, 0], [0, 0, -1, 0, 0, 0]])
-        )  
+        self.dvx = np.ravel(np.array([[0, 0, 1, 0, 0, 0], [0, 0, -1, 0, 0, 0]]))
 
         # Logitudinal CBF: h_lon
         self.p_lon = self.dx - self.TAU * self.dvx
-        
+
         # print(self.p_lon)
         self.q_lon = 0
 
     def get_G(self, g):
 
-        G = np.concatenate((np.expand_dims(-np.dot(self.p_lon, g), axis=0), [[1, 0]], [[-1, 0]]))
-        
+        G = np.concatenate(
+            (np.expand_dims(-np.dot(self.p_lon, g), axis=0), [[1, 0]], [[-1, 0]])
+        )
+
         # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
-        G = np.concatenate((G,[[-1], [0], [0]]), axis=1)
+        G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
         print("G: ", G)
 
@@ -166,11 +169,15 @@ class CBF_AV_Longitudinal(CBFType):
         print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
-    
+
     def log_debug_info(self, f, g, x, u_safe):
-        print("is safe: {0}".format(np.dot(self.p_lon, x)>0))
-        print("h_lon(s), h_lon(s'): ", np.dot(self.p_lon, x), 
-              np.dot(self.p_lon, f) + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe) )
+        print("is safe: {0}".format(np.dot(self.p_lon, x) > 0))
+        print(
+            "h_lon(s), h_lon(s'): ",
+            np.dot(self.p_lon, x),
+            np.dot(self.p_lon, f) + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe),
+        )
+
 
 class CBF_AV(CBFType):
     """Single agent CBF for AVs defined in Wang 2020.

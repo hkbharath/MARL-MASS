@@ -2,7 +2,7 @@ import argparse
 from argparse import ArgumentParser
 import gym
 from test.av_control.control_test_env import ControlTestEnv
-from highway_env.vehicle.controller import MDPLCVehicle
+from highway_env.vehicle.safe_controller import MDPLCVehicle
 from common.utils import init_wandb
 
 

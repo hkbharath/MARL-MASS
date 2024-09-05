@@ -5,7 +5,8 @@ import numpy as np
 from highway_env import utils
 from highway_env.vehicle.dynamics import BicycleVehicle
 from highway_env.vehicle.kinematics import Vehicle
-from highway_env.vehicle.controller import MDPVehicle, MDPLCVehicle
+from highway_env.vehicle.controller import MDPVehicle
+from highway_env.vehicle.safe_controller import MDPLCVehicle
 
 if TYPE_CHECKING:
     from highway_env.envs.common.abstract import AbstractEnv

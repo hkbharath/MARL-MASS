@@ -6,10 +6,18 @@ from highway_env.vehicle.safety.cbf import CBFType, cbf_factory
 
 if TYPE_CHECKING:
     from highway_env.road.road import Road
-    from highway_env.vehicle.controller import MDPLCVehicle
+    from highway_env.vehicle.safe_controller import MDPLCVehicle
     from highway_env.vehicle.kinematics import Vehicle
 
-def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", road: "Road", dt:float, perception_dist):
+
+def safe_action_longitudinal(
+    cbf: "CBFType",
+    action,
+    vehicle: "MDPLCVehicle",
+    road: "Road",
+    dt: float,
+    perception_dist,
+):
 
     # Identify leading vehicle
     perception_dist = 6 * vehicle.SPEED_MAX
@@ -17,7 +25,7 @@ def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", ro
     s_e = vehicle.to_dict()
     sf_e = {k: s_e[k] for k in CBFType.STATE_SPACE}
 
-    sf_o = {k: s_e[k]+100 for k in CBFType.STATE_SPACE}
+    sf_o = {k: s_e[k] + 100 for k in CBFType.STATE_SPACE}
 
     leading_vehicle: List[Vehicle] = road.close_vehicles_to(
         vehicle, perception_dist, count=1, see_behind=False
@@ -25,7 +33,7 @@ def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", ro
 
     if len(leading_vehicle) > 0:
         s_o = leading_vehicle[0].to_dict()
-        sf_o = {k: s_o[k] if k in s_o else 0 for k in CBFType.STATE_SPACE }
+        sf_o = {k: s_o[k] if k in s_o else 0 for k in CBFType.STATE_SPACE}
 
     fgp_e = vehicle.fg_params
     if fgp_e is None:
@@ -77,14 +85,8 @@ def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", ro
     u_safe = cbf.control_barrier(u_ll, f, g, x)
 
     print("u_safe: ", u_safe)
-    safe_action = {
-        "acceleration":u_safe[0], 
-        "steering": u_safe[1]
-    }
-    safe_diff = {
-        "acceleration":u_safe[0] - u_ll[0], 
-        "steering": u_safe[1] - u_ll[1]
-    }
+    safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
+    safe_diff = {"acceleration": u_safe[0] - u_ll[0], "steering": u_safe[1] - u_ll[1]}
     return safe_action, safe_diff
 
 
@@ -96,17 +98,21 @@ def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", ro
 #     return
 
 
-def safety_layer(safety_type: str, action:dict, vehicle: "MDPLCVehicle", **kwargs):
+def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", **kwargs):
     """
     Implements decentralised safety layer to evaluate safe actions using CBF.
     """
 
-    cbf: CBFType = cbf_factory(safety_type, 
-                               action_size=len(action), 
-                               action_bound=[(vehicle.MIN_ACC, vehicle.MAX_ACC), (-4*np.pi, 4*np.pi)])
+    cbf: CBFType = cbf_factory(
+        safety_type,
+        action_size=len(action),
+        action_bound=[(vehicle.MIN_ACC, vehicle.MAX_ACC), (-4 * np.pi, 4 * np.pi)],
+    )
 
     if safety_type == "avlon":
-        return safe_action_longitudinal(cbf=cbf, action=action, vehicle=vehicle, **kwargs)
+        return safe_action_longitudinal(
+            cbf=cbf, action=action, vehicle=vehicle, **kwargs
+        )
     # elif safety_type == "av":
     #     return safe_action_av(cbf=cbf, **kwargs)
     # elif safety_type == "cav":

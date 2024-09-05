@@ -7,10 +7,9 @@ from common.utils import init_wandb
 from typing import Any
 from uuid import uuid4, UUID
 
+
 def parse_args():
-    parser = ArgumentParser(
-        description=("Test CBF constraints")
-    )
+    parser = ArgumentParser(description=("Test CBF constraints"))
     parser.add_argument(
         "--test-type",
         type=str,
@@ -49,7 +48,8 @@ def parse_args():
 
     return parser.parse_args()
 
-def init_logging(config: dict, args: argparse.Namespace, uid:str, sfx) -> Any:
+
+def init_logging(config: dict, args: argparse.Namespace, uid: str, sfx) -> Any:
     project_name = "Safety layer"
     exp_name = args.exp_name + "-" + args.safety + "-" + args.test_type
     if args.extreme:
@@ -59,13 +59,18 @@ def init_logging(config: dict, args: argparse.Namespace, uid:str, sfx) -> Any:
     exp_name = exp_name + "-" + sfx
 
     config["run_id"] = uid
-    
+
     wandb_run = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
 
     return wandb_run
 
+
 def log_profile(
-    config: dict, args: argparse.Namespace, state_hist: dict, action_hist: dict, run_id:str
+    config: dict,
+    args: argparse.Namespace,
+    state_hist: dict,
+    action_hist: dict,
+    run_id: str,
 ) -> None:
 
     # TODO: iterate through each vehicles profile to log as seperate run.
@@ -91,12 +96,13 @@ def log_profile(
 
         for action_rec, state_rec in zip(action_hist, state_hist):
             log_entry = {
-                "state": state_rec, 
-                "action": action_rec, 
-                "t_step": action_rec["t_step"]
-                }
+                "state": state_rec,
+                "action": action_rec,
+                "t_step": action_rec["t_step"],
+            }
             wandb_run.log(log_entry)
     wandb_run.finish()
+
 
 def main():
     args = parse_args()
@@ -107,7 +113,7 @@ def main():
     if args.extreme:
         CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
         CBFTestEnv.USE_RANDOM = False
-        
+
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
 
@@ -127,8 +133,13 @@ def main():
     wandb_run.finish()
 
     log_profile(
-        config=env.config, args=args, state_hist=state_hist, action_hist=action_hist, run_id=run_id
+        config=env.config,
+        args=args,
+        state_hist=state_hist,
+        action_hist=action_hist,
+        run_id=run_id,
     )
+
 
 if __name__ == "__main__":
     main()
