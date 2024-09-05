@@ -42,8 +42,8 @@ def safe_action_longitudinal(cbf: "CBFType", action, vehicle: "MDPLCVehicle", ro
             [
                 [fp_e["x"] * dt, fp_e["y"] * dt, 0, 0, fp_e["heading"], 0],
                 [
-                    (CBFType.ACCELERATION_RANGE[0] * dt + sf_o["vx"]) * dt,
-                    (CBFType.ACCELERATION_RANGE[0] * dt + sf_o["vx"]) * dt,
+                    sf_o["vx"] * dt,
+                    sf_o["vx"] * dt,
                     CBFType.ACCELERATION_RANGE[0] * dt,
                     0,
                     0,

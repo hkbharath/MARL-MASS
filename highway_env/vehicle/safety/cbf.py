@@ -130,7 +130,7 @@ class CBF_AV_Longitudinal(CBFType):
 
         # \delta vx between two vehicle is evaluated from this matrix
         self.dvx = np.ravel(
-            np.array([[0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+            np.array([[0, 0, 1, 0, 0, 0], [0, 0, -1, 0, 0, 0]])
         )  
 
         # Logitudinal CBF: h_lon
