@@ -9,12 +9,11 @@ from gym.envs.registration import register
 from typing import Tuple
 import time
 from highway_env.utils import class_from_path
-
 from highway_env.envs.common.abstract import AbstractEnv
 from highway_env.road.lane import LineType, StraightLane
 from highway_env.road.road import Road, RoadNetwork
 from highway_env.envs.common.action import Action
-
+from highway_env.vehicle.safe_controller import MDPLCVehicle
 
 class CBFTestEnv(AbstractEnv):
     """
@@ -40,6 +39,7 @@ class CBFTestEnv(AbstractEnv):
                     "lateral": True,
                 },
                 "controlled_vehicles": 1,
+                "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleL",
                 "screen_width": 1000,
                 "screen_height": 100,
                 "centering_position": [1.5, 0.5],
@@ -48,7 +48,7 @@ class CBFTestEnv(AbstractEnv):
                 "duration": 10,  # time step
                 "policy_frequency": 5,  # [Hz]
                 "action_masking": False,
-                "show_trajectories": True,
+                "show_trajectories": False,
                 "lateral_control": "steer_vel",
                 "safety_guarantee": "cbf-avlon",  # Options: "none", "priority", "cbf-avlon", "cbf-av", "cbf-cav"
             }
@@ -137,7 +137,7 @@ class CBFTestEnv(AbstractEnv):
             road=road, position=init_pos_o, speed=init_speed_o
         )
         other_vehicle.randomize_behavior()
-
+        other_vehicle.id = 0
         road.vehicles.append(other_vehicle)
 
     def simulate_lon_crash(self, test_seed=0) -> Tuple[dict, dict]:
@@ -155,7 +155,19 @@ class CBFTestEnv(AbstractEnv):
             #     done = True
         time.sleep(1)
 
-        return self.vehicle.state_hist, self.vehicle.action_hist
+        cprofiles = {}
+        for v in self.road.vehicles:
+            if isinstance(v, MDPLCVehicle):
+                cprofiles["av"+str(v.id)] = {
+                    "state_hist":v.state_hist, 
+                    "action_hist":v.action_hist
+                    }
+            else:
+                cprofiles["hdv"+str(v.id)] = {
+                    "state_hist":v.state_hist, 
+                    "action_hist":v.action_hist
+                    }
+        return cprofiles
 
 
 register(

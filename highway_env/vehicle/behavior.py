@@ -492,3 +492,31 @@ class DefensiveVehicle(LinearVehicle):
     ACCELERATION_PARAMETERS = [MERGE_ACC_GAIN / ((1 - MERGE_VEL_RATIO) * MERGE_TARGET_VEL),
                                MERGE_ACC_GAIN / (MERGE_VEL_RATIO * MERGE_TARGET_VEL),
                                2.0]
+
+class IDMVehicleL(IDMVehicle):
+    def __init__(self, road: Road, position: Vector, heading: np.float = 0, speed: np.float = 0, target_lane_index: np.int = None, target_speed: np.float = None, route: Route = None, enable_lane_change: np.bool = True, timer: np.float = None):
+        super().__init__(road, position, heading, speed, target_lane_index, target_speed, route, enable_lane_change, timer)
+        self.t_step = 0
+        self.store_profile = True
+        self.state_hist = []
+        self.action_hist = []
+
+    def step(self, dt: np.float):
+        super().step(dt)
+        self.t_step += dt
+        self.log_step()
+    
+    def log_step(self, additional_info:dict = None):
+        if not self.store_profile:
+            return
+        
+        state_rec: dict = {}
+        state_rec.update({"steering_angle": self.action["steering"]})
+        state_rec["t_step"] = self.t_step
+        self.state_hist.append(state_rec)
+
+        action_rec = self.action
+        state_rec.update(self.to_dict())
+        state_rec.update({"speed": self.speed})
+        action_rec["t_step"] = self.t_step
+        self.action_hist.append(action_rec)

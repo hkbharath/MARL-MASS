@@ -193,8 +193,8 @@ class AbstractEnv(gym.Env):
         self._reset(num_CAV=num_CAV)
         self.define_spaces()  # Second, to link the obs and actions to the vehicles once the scene is created
         # set the vehicle id for visualizing
-        for i, v in enumerate(self.road.vehicles):
-            v.id = i
+        # for i, v in enumerate(self.road.vehicles):
+        #     v.id = i
         obs = self.observation_type.observe()
         # get action masks
         if self.config["action_masking"]:

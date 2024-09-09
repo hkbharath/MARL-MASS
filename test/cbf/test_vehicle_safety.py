@@ -1,11 +1,13 @@
 import argparse
 from argparse import ArgumentParser
 import gym
-from test.cbf import CBFTestEnv
-from highway_env.vehicle.safety.cbf import CBFType
-from common.utils import init_wandb
 from typing import Any
-from uuid import uuid4, UUID
+from uuid import uuid4
+from highway_env.vehicle.safety.cbf import CBFType
+
+from test.cbf import CBFTestEnv
+from common.utils import init_wandb
+
 
 
 def parse_args():
@@ -49,59 +51,57 @@ def parse_args():
     return parser.parse_args()
 
 
-def init_logging(config: dict, args: argparse.Namespace, uid: str, sfx) -> Any:
+def init_logging(config: dict, args: argparse.Namespace, uid: str, sfx:str) -> Any:
     project_name = "Safety layer"
     exp_name = args.exp_name + "-" + args.safety + "-" + args.test_type
     if args.extreme:
         exp_name = exp_name + "-extr"
     if args.safety != "none":
         exp_name = exp_name + "-g:" + str(args.gamma)
-    exp_name = exp_name + "-" + sfx
 
     config["run_id"] = uid
-
+    exp_name = exp_name + "-" + sfx
     wandb_run = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
-
     return wandb_run
 
-
-def log_profile(
+def log_profiles(
     config: dict,
     args: argparse.Namespace,
-    state_hist: dict,
-    action_hist: dict,
+    cp:dict,
     run_id: str,
 ) -> None:
 
-    # TODO: iterate through each vehicles profile to log as seperate run.
-    wandb_run = init_logging(config, args, run_id, "av1")
-    if wandb_run:
-        wandb_run.define_metric("t_step")
-        # define inputs
-        wandb_run.define_metric("action.steering", step_metric="t_step")
-        wandb_run.define_metric("action.acceleration", step_metric="t_step")
-        wandb_run.define_metric("action.ull_acceleration", step_metric="t_step")
-        wandb_run.define_metric("action.lc_action", step_metric="t_step")
-        wandb_run.define_metric("action.safe_diff.steering", step_metric="t_step")
-        wandb_run.define_metric("action.safe_diff.acceleration", step_metric="t_step")
+    for v_id, v_info in cp.items():
+        action_hist = v_info["action_hist"]
+        state_hist = v_info["state_hist"]
+        wandb_run = init_logging(config, args, run_id, v_id)
+        if wandb_run:
+            wandb_run.define_metric("t_step")
+            # define inputs
+            wandb_run.define_metric("action.steering", step_metric="t_step")
+            wandb_run.define_metric("action.acceleration", step_metric="t_step")
+            wandb_run.define_metric("action.ull_acceleration", step_metric="t_step")
+            wandb_run.define_metric("action.lc_action", step_metric="t_step")
+            wandb_run.define_metric("action.safe_diff.steering", step_metric="t_step")
+            wandb_run.define_metric("action.safe_diff.acceleration", step_metric="t_step")
 
-        # define state parameters
-        wandb_run.define_metric("state.steering_angle", step_metric="t_step")
-        wandb_run.define_metric("state.heading", step_metric="t_step")
-        wandb_run.define_metric("state.speed", step_metric="t_step")
-        wandb_run.define_metric("state.y", step_metric="t_step")
-        wandb_run.define_metric("state.x", step_metric="t_step")
-        wandb_run.define_metric("state.vx", step_metric="t_step")
-        wandb_run.define_metric("state.vy", step_metric="t_step")
+            # define state parameters
+            wandb_run.define_metric("state.steering_angle", step_metric="t_step")
+            wandb_run.define_metric("state.heading", step_metric="t_step")
+            wandb_run.define_metric("state.speed", step_metric="t_step")
+            wandb_run.define_metric("state.y", step_metric="t_step")
+            wandb_run.define_metric("state.x", step_metric="t_step")
+            wandb_run.define_metric("state.vx", step_metric="t_step")
+            wandb_run.define_metric("state.vy", step_metric="t_step")
 
-        for action_rec, state_rec in zip(action_hist, state_hist):
-            log_entry = {
-                "state": state_rec,
-                "action": action_rec,
-                "t_step": action_rec["t_step"],
-            }
-            wandb_run.log(log_entry)
-    wandb_run.finish()
+            for action_rec, state_rec in zip(action_hist, state_hist):
+                log_entry = {
+                    "state": state_rec,
+                    "action": action_rec,
+                    "t_step": action_rec["t_step"],
+                }
+                wandb_run.log(log_entry)
+        wandb_run.finish()
 
 
 def main():
@@ -121,10 +121,8 @@ def main():
 
     CBFType.GAMMA_B = args.gamma
 
-    state_hist = {}
-    action_hist = {}
     if args.test_type == "lon":
-        state_hist, action_hist = env.simulate_lon_crash()
+        cprofiles= env.simulate_lon_crash()
     else:
         raise ValueError("CBF type '{0}' not supported".format(args.test_type))
 
@@ -132,11 +130,10 @@ def main():
 
     wandb_run.finish()
 
-    log_profile(
+    log_profiles(
         config=env.config,
         args=args,
-        state_hist=state_hist,
-        action_hist=action_hist,
+        cp=cprofiles,
         run_id=run_id,
     )
 

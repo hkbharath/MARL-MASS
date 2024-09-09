@@ -35,13 +35,10 @@ class MDPLCVehicle(MDPVehicle):
         super().__init__(**kwargs)
         self.safety_layer = safety_layer
         self.lateral_ctrl = lateral_ctrl
-        self.action_hist = None
-        self.state_hist = None
+        self.store_profile = store_profile
         self.t_step = 0.0
-
-        if store_profile:
-            self.action_hist = []
-            self.state_hist = []
+        self.action_hist = []
+        self.state_hist = []
 
         # Addition state parameter store current steering state
         self.steering_angle = 0
@@ -104,7 +101,6 @@ class MDPLCVehicle(MDPVehicle):
 
         safe_action, safe_diff = None, None
 
-        state_var: dict = {"t_step": self.t_step}
         if self.lateral_ctrl == "steer_vel":
             self.clip_actions()
             safe_action, safe_diff = self.safe_action(dt)
@@ -136,30 +132,50 @@ class MDPLCVehicle(MDPVehicle):
             self.on_state_update()
         else:
             super().step(dt)
-            state_var.update({"steering_angle": self.action["steering"]})
-
-        if self.action_hist is not None:
-            action_rec = self.action
-            if safe_action is not None:
-                action_rec = safe_action
-            action_rec["ull_acceleration"] = self.action["acceleration"]
-            action_rec["t_step"] = self.t_step
-            action_rec["lc_action"] = 1  # 'IDLE': 1
-            if self.lane_index != self.target_lane_index:
-                # lc_actions: 'LANE_LEFT': 0, 'LANE_RIGHT': 2,
-                # lane_index: left:0, right:1
-                _f, _t, _id = self.target_lane_index
-                action_rec["lc_action"] = 0 if _id == 0 else 2
-            if safe_diff is not None:
-                action_rec["safe_diff"] = safe_diff
-            self.action_hist.append(action_rec)
-
-        if self.state_hist is not None:
-            state_var.update(self.to_dict())
-            state_var.update({"speed": self.speed})
-            self.state_hist.append(state_var)
 
         self.t_step += dt
+        a_info = {
+            "safe_action": safe_action,
+            "safe_diff": safe_diff
+        }
+        self.log_step(additional_info=a_info)
+
+    def log_step(self, additional_info:dict = None):
+        if not self.store_profile:
+            return
+        
+        state_rec:dict = self.to_dict()
+        state_rec.update({"speed": self.speed})
+        if self.lateral_ctrl != "steer_vel":
+            state_rec.update({"steering_angle": self.action["steering"]})
+
+        state_rec["t_step"] = self.t_step
+        self.state_hist.append(state_rec)
+    
+        safe_action = None
+        safe_diff = None
+        if additional_info is not None:
+            safe_action = additional_info["safe_action"]
+            safe_diff = additional_info["safe_diff"]
+
+        action_rec = self.action
+        if safe_action is not None:
+            action_rec = safe_action
+        action_rec["ull_acceleration"] = self.action["acceleration"]
+
+        # Fix this step to log high level behaviour
+        action_rec["lc_action"] = 1  # 'IDLE': 1
+        if self.lane_index != self.target_lane_index:
+            # lc_actions: 'LANE_LEFT': 0, 'LANE_RIGHT': 2,
+            # lane_index: left:0, right:1
+            _f, _t, _id = self.target_lane_index
+            action_rec["lc_action"] = 0 if _id == 0 else 2
+
+        if safe_diff is not None:
+            action_rec["safe_diff"] = safe_diff
+        action_rec["t_step"] = self.t_step
+        self.action_hist.append(action_rec)
+
 
     def safe_action(self, dt: float) -> Any:
         if (

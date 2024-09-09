@@ -264,3 +264,7 @@ class Vehicle(object):
 
     def __repr__(self):
         return self.__str__()
+
+    def log_step(self, additional_info:dict = None):
+        # Nothing to log here. Override this function in the child class to log relavent information
+        return
