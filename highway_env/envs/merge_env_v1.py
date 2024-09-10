@@ -214,18 +214,23 @@ class MergeEnv(AbstractEnv):
         road.objects.append(Obstacle(road, lbc.position(self.ends[2], 0)))
         self.road = road
 
-    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float):
+    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
         return self.action_type.vehicle_class(road=road, 
                                             position = position, 
                                             speed=speed)
     
+    def _make_hdv_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
+        other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
+
+        return other_vehicles_type(road, position=position, speed=speed)
+        
+        
     def _make_vehicles(self, num_CAV=4, num_HDV=3) -> None:
         """
         Populate a road with several vehicles on the highway and on the merging lane, as well as an ego-vehicle.
         :return: the ego-vehicle
         """
         road = self.road
-        other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
         self.controlled_vehicles = []
 
         #default spawn points
@@ -281,32 +286,37 @@ class MergeEnv(AbstractEnv):
             ego_vehicle = self._make_ego_vehicle(road=road, 
                                                          position = road.network.get_lane(("a", "b", 0))
                                                             .position(spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), 
-                                                         speed=initial_speed.pop(0))
-            ego_vehicle.id = len(self.controlled_vehicles)
+                                                         speed=initial_speed.pop(0),
+                                                         veh_id=len(road.vehicles))
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
         """spawn the rest CAV on the merging road"""
         for _ in range(num_CAV - num_CAV // 2):
             ego_vehicle = self._make_ego_vehicle(road = road, position = road.network.get_lane(("j", "k", 0))
                                                             .position(spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), 
-                                                         speed=initial_speed.pop(0))
-            ego_vehicle.id = len(self.controlled_vehicles)
+                                                         speed=initial_speed.pop(0),
+                                                         veh_id=len(road.vehicles))
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
 
         """spawn the HDV on the main road first"""
         for _ in range(num_HDV // 2):
-            road.vehicles.append(
-                other_vehicles_type(road, road.network.get_lane(("a", "b", 0)).position(
-                    spawn_point_s_h.pop(0) + loc_noise.pop(0), 0),
-                                    speed=initial_speed.pop(0)))
+            hd_vehicle = self._make_hdv_vehicle(road=road,
+                                                position=road.network.get_lane(("a", "b", 0)).position(
+                                                    spawn_point_s_h.pop(0) + loc_noise.pop(0), 0),
+                                                speed=initial_speed.pop(0),
+                                                veh_id=len(road.vehicles))
+            road.vehicles.append(hd_vehicle)
+            
 
         """spawn the rest HDV on the merging road"""
         for _ in range(num_HDV - num_HDV // 2):
-            road.vehicles.append(
-                other_vehicles_type(road, road.network.get_lane(("j", "k", 0)).position(
-                    spawn_point_m_h.pop(0) + loc_noise.pop(0), 0),
-                                    speed=initial_speed.pop(0)))
+            hd_vehicle = self._make_hdv_vehicle(road=road,
+                                                position=road.network.get_lane(("j", "k", 0)).position(
+                                                    spawn_point_m_h.pop(0) + loc_noise.pop(0), 0),
+                                                speed=initial_speed.pop(0),
+                                                veh_id=len(road.vehicles))
+            road.vehicles.append(hd_vehicle)
 
     def terminate(self):
         return
@@ -363,14 +373,24 @@ class MergeEnvLCMARL(MergeEnv):
         })
         return config
     
-    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float):
+    def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
         safety_layer = self.config["safety_guarantee"]
         lateral_ctrl = self.config["lateral_control"]
-        return self.action_type.vehicle_class(safety_layer = safety_layer,
+        ego_v = self.action_type.vehicle_class(safety_layer = safety_layer,
                                               lateral_ctrl = lateral_ctrl,
                                             road=road, 
                                             position = position, 
                                             speed=speed)
+        ego_v.id = veh_id
+        return ego_v
+
+    def _make_hdv_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
+        other_vehicles_type = utils.class_from_path(self.config["other_vehicles_type"])
+
+        hdv_v = other_vehicles_type(road, position=position,
+                                    speed=speed)
+        hdv_v.id = veh_id
+        return hdv_v
     
 register(
     id='merge-v1',

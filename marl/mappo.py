@@ -11,6 +11,10 @@ from marl.single_agent.Memory_common import OnPolicyReplayMemory
 from marl.single_agent.Model_common import ActorNetwork, CriticNetwork
 from common.utils import index_to_one_hot, to_tensor_var, VideoRecorder
 
+from highway_env.vehicle.safe_controller import MDPLCVehicle
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from highway_env.envs.merge_env_v1 import MergeEnvLCMARL
 
 class MAPPO:
     """
@@ -24,7 +28,7 @@ class MAPPO:
                  reward_gamma=0.99, reward_scale=20,
                  actor_hidden_size=128, critic_hidden_size=128,
                  actor_output_act=nn.functional.log_softmax, critic_loss="mse",
-                 actor_lr=0.0001, critic_lr=0.0001, test_seeds=0,
+                 actor_lr=0.0001, critic_lr=0.0001, test_seeds="0",
                  optimizer_type="rmsprop", entropy_reg=0.01,
                  max_grad_norm=0.5, batch_size=100, episodes_before_train=100,
                  use_cuda=True, traffic_density=1, reward_type="global_R"):
@@ -302,6 +306,9 @@ class MAPPO:
                 infos_i.append(info)
                 step_time_i += s_time
 
+            # Capture the seeds with crash
+            if any(vehicle.crashed for vehicle in env.controlled_vehicles):
+                print("Vehicle crashed in simulation with seed: ", seeds[i])
             vehicle_speed.append(info["vehicle_speed"])
             vehicle_position.append(info["vehicle_position"])
             rewards.append(rewards_i)
@@ -372,3 +379,24 @@ class MAPPO:
                  'model_state_dict': self.actor.state_dict(),
                  'optimizer_state_dict': self.actor_optimizer.state_dict()},
                 file_path)
+
+
+class MAPPOControlEval(MAPPO):
+    def evaluation(self, env:"MergeEnvLCMARL", output_dir):
+        rewards, vehicle_info, ext_info = super().evaluation(env=env, output_dir=output_dir, eval_episodes=1, is_train=False)
+
+        cprofiles = {}
+        for v in env.road.vehicles:
+            if isinstance(v, MDPLCVehicle):
+                cprofiles["av"+str(v.id)] = {
+                    "state_hist":v.state_hist, 
+                    "action_hist":v.action_hist
+                    }
+            else:
+                cprofiles["hdv"+str(v.id)] = {
+                    "state_hist":v.state_hist, 
+                    "action_hist":v.action_hist
+                    }
+
+        ext_info["control_profile"] = cprofiles
+        return rewards, vehicle_info, ext_info
