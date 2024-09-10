@@ -71,49 +71,6 @@ def setup_logging(
     wandb_run = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
     return wandb_run
 
-
-# def log_profiles(
-#     config: dict,
-#     args: argparse.Namespace,
-#     cp: dict,
-#     run_id: str,
-# ) -> None:
-
-#     for v_id, v_info in cp.items():
-#         action_hist = v_info["action_hist"]
-#         state_hist = v_info["state_hist"]
-#         wandb_run = setup_logging(config, args, run_id, v_id)
-#         if wandb_run:
-#             wandb_run.define_metric("t_step")
-#             # define inputs
-#             wandb_run.define_metric("action.steering", step_metric="t_step")
-#             wandb_run.define_metric("action.acceleration", step_metric="t_step")
-#             wandb_run.define_metric("action.ull_acceleration", step_metric="t_step")
-#             wandb_run.define_metric("action.lc_action", step_metric="t_step")
-#             wandb_run.define_metric("action.safe_diff.steering", step_metric="t_step")
-#             wandb_run.define_metric(
-#                 "action.safe_diff.acceleration", step_metric="t_step"
-#             )
-
-#             # define state parameters
-#             wandb_run.define_metric("state.steering_angle", step_metric="t_step")
-#             wandb_run.define_metric("state.heading", step_metric="t_step")
-#             wandb_run.define_metric("state.speed", step_metric="t_step")
-#             wandb_run.define_metric("state.y", step_metric="t_step")
-#             wandb_run.define_metric("state.x", step_metric="t_step")
-#             wandb_run.define_metric("state.vx", step_metric="t_step")
-#             wandb_run.define_metric("state.vy", step_metric="t_step")
-
-#             for action_rec, state_rec in zip(action_hist, state_hist):
-#                 log_entry = {
-#                     "state": state_rec,
-#                     "action": action_rec,
-#                     "t_step": action_rec["t_step"],
-#                 }
-#                 wandb_run.log(log_entry)
-#             wandb_run.finish()
-
-
 def main():
     args = parse_args()
     run_id = str(uuid4()).split("-")[-1]
