@@ -109,6 +109,7 @@ def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", **kwar
         safety_type,
         action_size=len(action),
         action_bound=[(vehicle.MIN_ACC, vehicle.MAX_ACC), (-4 * np.pi, 4 * np.pi)],
+        vehicle_size=[vehicle.LENGTH, vehicle.WIDTH]
     )
 
     if safety_type == "avlon":

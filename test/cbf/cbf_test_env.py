@@ -15,6 +15,7 @@ from highway_env.road.road import Road, RoadNetwork
 from highway_env.envs.common.action import Action
 from highway_env.vehicle.safe_controller import MDPLCVehicle
 
+
 class CBFTestEnv(AbstractEnv):
     """
     An test environment to simulate a crash on the same lane. Using CBF safety layer should avoid the crash.
@@ -23,6 +24,7 @@ class CBFTestEnv(AbstractEnv):
     n_a = 5
     VEHICLE_SPEEDS = [25, 20]
     USE_RANDOM = True
+    DEBUG_CBF = False
 
     @classmethod
     def default_config(cls) -> dict:
@@ -151,22 +153,22 @@ class CBFTestEnv(AbstractEnv):
             self.render()
             time.sleep(0.1)
             step += 1
-            # if step > 2:
-            #     done = True
+            if self.DEBUG_CBF and step > 1:
+                done = True
         time.sleep(1)
 
         cprofiles = {}
         for v in self.road.vehicles:
             if isinstance(v, MDPLCVehicle):
-                cprofiles["av"+str(v.id)] = {
-                    "state_hist":v.state_hist, 
-                    "action_hist":v.action_hist
-                    }
+                cprofiles["av" + str(v.id)] = {
+                    "state_hist": v.state_hist,
+                    "action_hist": v.action_hist,
+                }
             else:
-                cprofiles["hdv"+str(v.id)] = {
-                    "state_hist":v.state_hist, 
-                    "action_hist":v.action_hist
-                    }
+                cprofiles["hdv" + str(v.id)] = {
+                    "state_hist": v.state_hist,
+                    "action_hist": v.action_hist,
+                }
         return cprofiles
 
 

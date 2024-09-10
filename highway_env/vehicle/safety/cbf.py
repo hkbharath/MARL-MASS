@@ -1,6 +1,7 @@
 import numpy as np
 from cvxopt import matrix
 from cvxopt import solvers
+from typing import List, Any, Tuple
 
 
 class CBFType:
@@ -10,7 +11,7 @@ class CBFType:
     ACCELERATION_RANGE = (-6, 6)
     """Acceleration range: [-x, x], in m/s²."""
 
-    GAMMA_B = 1
+    GAMMA_B = 1.406
     """Gamma used to enforce stricness of constraint in CBF optimisation"""
 
     KD = 1
@@ -19,12 +20,15 @@ class CBFType:
     TAU = 1.2
     """Safe time headway"""
 
-    def __init__(self, action_size, action_bound):
+    def __init__(
+        self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
+    ):
         # P representes the coefficients of the input variables x^2.
         # Since we aim to minimise both velocity at first only one value is set to 1.
         # For both values set both values to 1.
         self.action_size = action_size
         self.action_bound = action_bound
+        self.vehicle_size = vehicle_size
 
         # Additional size is used to assist optimisation process
         self.u_size = self.action_size + 1
@@ -124,8 +128,10 @@ class CBF_AV_Longitudinal(CBFType):
         np.array: action bounds
     """
 
-    def __init__(self, action_bound, action_size=2):
-        super().__init__(action_size, action_bound)
+    def __init__(
+        self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
+    ) -> Any:
+        super().__init__(action_size, action_bound, vehicle_size)
 
         # Supporting matrix
         # \delta x between two vehicle is evaluated from this matrix
@@ -137,8 +143,8 @@ class CBF_AV_Longitudinal(CBFType):
         # Logitudinal CBF: h_lon
         self.p_lon = self.dx - self.TAU * self.dvx
 
-        # print(self.p_lon)
-        self.q_lon = 0
+        # reduce one vehicle length, as position correspond to centre of the car
+        self.q_lon = -self.vehicle_size[0]
 
     def get_G(self, g):
 
@@ -174,8 +180,10 @@ class CBF_AV_Longitudinal(CBFType):
         print("is safe: {0}".format(np.dot(self.p_lon, x) > 0))
         print(
             "h_lon(s), h_lon(s'): ",
-            np.dot(self.p_lon, x),
-            np.dot(self.p_lon, f) + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe),
+            np.dot(self.p_lon, x) + self.q_lon,
+            np.dot(self.p_lon, f)
+            + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe)
+            + self.q_lon,
         )
 
 
@@ -187,8 +195,10 @@ class CBF_AV(CBFType):
         np.array: action bounds
     """
 
-    def __init__(self, action_size, action_bound):
-        super().__init__(action_size, action_bound)
+    def __init__(
+        self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
+    ):
+        super().__init__(action_size, action_bound, vehicle_size)
         self.P = matrix(np.diag([1.0, 1]), tc="d")
         # TODO: Redefine these calues
 
@@ -208,8 +218,10 @@ class CBF_CAV(CBFType):
         CBF_CAV(int): action size for setting up CBF matrices
     """
 
-    def __init__(self, action_size, action_bound):
-        super().__init__(action_size, action_bound)
+    def __init__(
+        self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
+    ):
+        super().__init__(action_size, action_bound, vehicle_size)
         self.P = matrix(np.diag([1.0, 1]), tc="d")
 
     def get_G(self, g):

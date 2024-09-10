@@ -46,6 +46,11 @@ def parse_args():
         default="safety_test",
         help="Experiment name to be used for wandb logging",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Execute single simulation step to debug CBF values",
+    )
 
     return parser.parse_args()
 
@@ -67,9 +72,10 @@ def setup_logging(
 
     config["run_id"] = uid
     exp_name = exp_name + "-" + sfx
-    
+
     wandb_run = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
     return wandb_run
+
 
 def main():
     args = parse_args()
@@ -80,6 +86,8 @@ def main():
     if args.extreme:
         CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
         CBFTestEnv.USE_RANDOM = False
+
+    CBFTestEnv.DEBUG_CBF = args.debug
 
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
@@ -102,7 +110,7 @@ def main():
         args=args,
         cp=cprofiles,
         run_id=run_id,
-        init_logging_f=setup_logging
+        init_logging_f=setup_logging,
     )
 
 
