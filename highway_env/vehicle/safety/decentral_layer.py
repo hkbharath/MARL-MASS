@@ -28,12 +28,14 @@ def safe_action_longitudinal(
     sf_o = {k: s_e[k] + 100 for k in CBFType.STATE_SPACE}
 
     leading_vehicle: List[Vehicle] = road.close_vehicles_to(
-        vehicle, perception_dist, count=1, see_behind=False
+        vehicle, perception_dist, count=5, see_behind=False
     )
 
-    if len(leading_vehicle) > 0:
-        s_o = leading_vehicle[0].to_dict()
-        sf_o = {k: s_o[k] if k in s_o else 0 for k in CBFType.STATE_SPACE}
+    for veh in leading_vehicle:
+        if veh.lane_index == vehicle.lane_index:
+            s_o = veh.to_dict()
+            sf_o = {k: s_o[k] if k in s_o else 0 for k in CBFType.STATE_SPACE}
+            break
 
     fgp_e = vehicle.fg_params
     if fgp_e is None:
