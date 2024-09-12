@@ -130,7 +130,7 @@ class CBFTestEnv(AbstractEnv):
         road.vehicles.append(ego_vehicle)
 
         other_vehicles_type = class_from_path(self.config["other_vehicles_type"])
-        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(65, 0)
+        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(75, 0)
         init_speed_o = self.VEHICLE_SPEEDS[1]
         if self.USE_RANDOM:
             init_speed_o = init_speed_o + np.random.rand() * 2

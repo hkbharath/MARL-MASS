@@ -92,7 +92,9 @@ def main():
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
 
-    wandb_run = setup_logging(env.config, args, run_id, "log")
+    wandb_run = None
+    if not args.debug:
+        wandb_run = setup_logging(env.config, args, run_id, "log")
 
     CBFType.GAMMA_B = args.gamma
 
@@ -103,15 +105,17 @@ def main():
 
     env.close()
 
-    wandb_run.finish()
+    if wandb_run:
+        wandb_run.finish()
 
-    log_profiles(
-        config=env.config,
-        args=args,
-        cp=cprofiles,
-        run_id=run_id,
-        init_logging_f=setup_logging,
-    )
+    if not args.debug:
+        log_profiles(
+            config=env.config,
+            args=args,
+            cp=cprofiles,
+            run_id=run_id,
+            init_logging_f=setup_logging,
+        )
 
 
 if __name__ == "__main__":

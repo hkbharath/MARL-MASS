@@ -53,7 +53,7 @@ def safe_action_longitudinal(
                 [fp_e["x"] * dt, fp_e["y"] * dt, 0, 0, fp_e["heading"], 0],
                 [
                     sf_o["vx"] * dt,
-                    sf_o["vx"] * dt,
+                    sf_o["vy"] * dt,
                     CBFType.ACCELERATION_RANGE[0] * dt,
                     0,
                     0,

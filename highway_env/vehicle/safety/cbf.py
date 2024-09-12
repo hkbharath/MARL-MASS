@@ -11,7 +11,7 @@ class CBFType:
     ACCELERATION_RANGE = (-6, 6)
     """Acceleration range: [-x, x], in m/s²."""
 
-    GAMMA_B = 1.406
+    GAMMA_B = 0
     """Gamma used to enforce stricness of constraint in CBF optimisation"""
 
     KD = 1
@@ -128,6 +128,8 @@ class CBF_AV_Longitudinal(CBFType):
         np.array: action bounds
     """
 
+    GAMMA_B = 1.625
+    
     def __init__(
         self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
     ) -> Any:
@@ -138,7 +140,7 @@ class CBF_AV_Longitudinal(CBFType):
         self.dx = np.ravel(np.array([[-1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]]))
 
         # \delta vx between two vehicle is evaluated from this matrix
-        self.dvx = np.ravel(np.array([[0, 0, 1, 0, 0, 0], [0, 0, -1, 0, 0, 0]]))
+        self.dvx = np.ravel(np.array([[0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]]))
 
         # Logitudinal CBF: h_lon
         self.p_lon = self.dx - self.TAU * self.dvx
