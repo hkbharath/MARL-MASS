@@ -89,7 +89,7 @@ def safe_action_longitudinal(
     print("u_safe: ", u_safe)
     safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
     safe_diff = {"acceleration": u_safe[0] - u_ll[0], "steering": u_safe[1] - u_ll[1]}
-    return safe_action, safe_diff
+    return safe_action, safe_diff, cbf.get_status()
 
 
 # def safe_action_av(cbf: "CBFType", env: "AbstractEnv", vehicle: "MDPLCVehicle", action):
@@ -109,7 +109,7 @@ def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", **kwar
         safety_type,
         action_size=len(action),
         action_bound=[(vehicle.MIN_ACC, vehicle.MAX_ACC), (-4 * np.pi, 4 * np.pi)],
-        vehicle_size=[vehicle.LENGTH, vehicle.WIDTH]
+        vehicle_size=[vehicle.LENGTH, vehicle.WIDTH],
     )
 
     if safety_type == "avlon":

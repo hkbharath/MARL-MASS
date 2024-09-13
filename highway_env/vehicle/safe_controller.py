@@ -3,7 +3,8 @@ from highway_env.road.road import LaneIndex
 from highway_env.vehicle.kinematics import Vehicle
 from highway_env.vehicle.controller import MDPVehicle
 from highway_env.vehicle.safety.decentral_layer import safety_layer
-from typing import Any
+from typing import Any, Tuple, Dict, Union
+
 
 class MDPLCVehicle(MDPVehicle):
     # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
@@ -14,7 +15,7 @@ class MDPLCVehicle(MDPVehicle):
     MAX_ACC: float = 6
 
     # [m/s2] to safety maintain 1.2s time headway to reach from max speed to lowest speed.
-    MIN_ACC: float = -12.5 
+    MIN_ACC: float = -12.5
     PERCEPTION_DIST = 6 * MDPVehicle.SPEED_MAX
 
     def __init__(
@@ -103,7 +104,7 @@ class MDPLCVehicle(MDPVehicle):
 
         if self.lateral_ctrl == "steer_vel":
             self.clip_actions()
-            safe_action, safe_diff = self.safe_action(dt)
+            safe_action, safe_diff, safe_status = self.get_safe_action(dt)
 
             self.steering_angle += safe_action["steering"] * dt
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
@@ -136,25 +137,35 @@ class MDPLCVehicle(MDPVehicle):
         self.t_step += dt
         a_info = {
             "safe_action": safe_action,
-            "safe_diff": safe_diff
+            "safe_diff": safe_diff,
+            "safe_status": safe_status,
         }
         self.log_step(additional_info=a_info)
 
-    def log_step(self, additional_info:dict = None):
+    def log_step(self, additional_info: dict = None):
         if not self.store_profile:
             return
-        
-        state_rec:dict = self.to_dict()
+
+        state_rec: dict = self.to_dict()
         state_rec.update({"speed": self.speed})
         if self.lateral_ctrl != "steer_vel":
             state_rec.update({"steering_angle": self.action["steering"]})
 
+        if (
+            additional_info is not None
+            and "safe_status" in additional_info
+            and additional_info["safe_status"] is not None
+        ):
+            state_rec["safe_status"] = additional_info["safe_status"]
+
         state_rec["t_step"] = self.t_step
         self.state_hist.append(state_rec)
-    
+
         safe_action = None
         safe_diff = None
-        if additional_info is not None:
+        if additional_info is not None and all(
+            k in additional_info for k in ["safe_action", "safe_diff"]
+        ):
             safe_action = additional_info["safe_action"]
             safe_diff = additional_info["safe_diff"]
 
@@ -176,15 +187,16 @@ class MDPLCVehicle(MDPVehicle):
         action_rec["t_step"] = self.t_step
         self.action_hist.append(action_rec)
 
-
-    def safe_action(self, dt: float) -> Any:
+    def get_safe_action(
+        self, dt: float
+    ) -> Tuple[Dict, Union[Dict, None], Union[Dict, None]]:
         if (
             self.safety_layer in ["none", "priority"]
             or self.lateral_ctrl != "steer_vel"
             or "cbf-" not in self.safety_layer
             or self.fg_params is None
         ):
-            return self.action, None
+            return self.action, None, None
 
         safety_type = self.safety_layer.split("-")[1]
         return safety_layer(
@@ -195,4 +207,3 @@ class MDPLCVehicle(MDPVehicle):
             perception_dist=self.PERCEPTION_DIST,
             action=self.action,
         )
-

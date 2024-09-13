@@ -1,7 +1,7 @@
 import numpy as np
 from cvxopt import matrix
 from cvxopt import solvers
-from typing import List, Any, Tuple
+from typing import List, Any, Tuple, Union, Dict
 
 
 class CBFType:
@@ -38,6 +38,10 @@ class CBFType:
 
         # q is used to define coefficients of x1x2 terms. In our optimisation problem these coefficients are 0.
         self.q = matrix(np.zeros(self.u_size), tc="d")
+
+        self.is_safe: Union[bool, None] = None
+        self.is_invariant: Union[bool, None] = None
+        self.is_optimal: Union[bool, None] = None
 
     def get_G(self, g):
         """_summary_
@@ -109,12 +113,22 @@ class CBFType:
         u_safe = np.add(np.squeeze(u_ll), np.squeeze(u_bar)[:2])
         self.check_bounds(u_safe)
 
-        self.log_debug_info(f, g, x, u_safe)
+        is_opt = sol["status"] != "unknown"
+        self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_safe)
 
         return np.array(u_safe)
 
-    def log_debug_info(self, f, g, x, u_safe):
-        pass
+    def update_status(self, is_opt, f, g, x, u_safe):
+        self.is_optimal = is_opt
+
+    def get_status(self) -> Dict[str, bool]:
+        sol_state = {"is_optimal": float(self.is_optimal)}
+        if self.is_safe is not None:
+            sol_state["is_safe"] = float(self.is_safe)
+        if self.is_invariant is not None:
+            sol_state["is_invariant"] = float(self.is_invariant)
+
+        return sol_state
 
 
 class CBF_AV_Longitudinal(CBFType):
@@ -128,8 +142,8 @@ class CBF_AV_Longitudinal(CBFType):
         np.array: action bounds
     """
 
-    GAMMA_B = 1.625
-    
+    # GAMMA_B = 1.6251
+
     def __init__(
         self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
     ) -> Any:
@@ -178,15 +192,21 @@ class CBF_AV_Longitudinal(CBFType):
         # assert (h.shape, (3, 1))
         return h
 
-    def log_debug_info(self, f, g, x, u_safe):
-        print("is safe: {0}".format(np.dot(self.p_lon, x) > 0))
-        print(
-            "h_lon(s), h_lon(s'): ",
-            np.dot(self.p_lon, x) + self.q_lon,
+    def update_status(self, is_opt, f, g, x, u_safe):
+        super().update_status(is_opt, f, g, x, u_safe)
+        hls = np.dot(self.p_lon, x) + self.q_lon
+        hlds = (
             np.dot(self.p_lon, f)
             + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe)
-            + self.q_lon,
+            + self.q_lon
         )
+        self.is_safe = hls >= 0
+        self.is_invariant = (hlds + (self.GAMMA_B - 1) * hls) >= 0
+
+        print("is safe: ", self.is_safe)
+        print("is invariant: ", self.is_invariant)
+        print("h_lon(s), h_lon(s'): ", hls, hlds)
+        print("eta: ", self.GAMMA_B)
 
 
 class CBF_AV(CBFType):
