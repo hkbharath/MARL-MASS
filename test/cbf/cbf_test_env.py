@@ -157,6 +157,9 @@ class CBFTestEnv(AbstractEnv):
                 done = True
         time.sleep(1)
 
+        return self._vehicle_profiles()
+
+    def _vehicle_profiles(self):
         cprofiles = {}
         for v in self.road.vehicles:
             if isinstance(v, MDPLCVehicle):
@@ -170,9 +173,137 @@ class CBFTestEnv(AbstractEnv):
                     "action_hist": v.action_hist,
                 }
         return cprofiles
+    
+class CBFMATestEnv(CBFTestEnv):
+    """
+    An test environment to simulate a crash on the same lane. Using CBF safety layer should avoid the crash.
+    """
 
+    n_a = 5
+
+    VEHICLE_SPEEDS = [25, 22, 18]
+    """ Speed of ego, adjacent, and leading vehicles"""
+    INIT_POS = [25, 50, 75]
+    """ Initial positions of ego, adjacent, and leading vehicles"""
+
+    @classmethod
+    def default_config(cls) -> dict:
+        config = super().default_config()
+        config.update(
+            {
+                "action": {
+                    "type": "MultiAgentAction",
+                    "action_config": {
+                        "type": "DiscreteMetaActionLC",
+                        "lateral": True,
+                        "longitudinal": True
+                    }},
+                "observation": {
+                    "type": "MultiAgentObservation",
+                    "observation_config": {
+                        "type": "KinematicLC"
+                    }},
+                "controlled_vehicles": 3,
+                "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleL",
+                "screen_width": 1000,
+                "screen_height": 100,
+                "centering_position": [1.5, 0.5],
+                "scaling": 5,
+                "simulation_frequency": 15,  # [Hz]
+                "duration": 10,  # time step
+                "policy_frequency": 5,  # [Hz]
+                "action_masking": False,
+                "show_trajectories": False,
+                "lateral_control": "steer_vel",
+                "safety_guarantee": "cbf-av",  # Options: "none", "priority", "cbf-avlon", "cbf-av", "cbf-cav"
+            }
+        )
+        return config
+    
+    def _make_vehicle(self, init_lane: int = 0) -> None:
+
+        road = self.road
+        self.controlled_vehicles = []
+        self.init_lane = init_lane
+
+        # vid info: 2: leading, 1: adjacent, 0:ego
+        for vid in [2,1,0]:
+            # This works only in two lane cases
+            if vid == 1:
+                spawn_init_lane = 1-self.init_lane
+            else:
+                spawn_init_lane = self.init_lane
+
+            init_pos = road.network.get_lane(("a", "b", spawn_init_lane)).position(self.INIT_POS[vid], 0)
+            init_speed = self.VEHICLE_SPEEDS[vid]
+            if self.USE_RANDOM:
+                init_speed = init_speed + np.random.rand() * 2
+
+            safety_layer = self.config["safety_guarantee"]
+            lateral_ctrl = self.config["lateral_control"]
+
+            ego_vehicle = self.action_type.vehicle_class(
+                safety_layer=safety_layer,
+                lateral_ctrl=lateral_ctrl,
+                store_profile=True,
+                road=road,
+                position=init_pos,
+                speed=init_speed,
+            )
+            ego_vehicle.id = vid
+            self.controlled_vehicles.append(ego_vehicle)
+            road.vehicles.append(ego_vehicle)
+
+    def simulate_adj_lc_crash(self, test_seed=0, init_lane=0) -> Tuple[dict, dict]:
+        done = False
+        obs, _ = self.reset(testing_seeds=test_seed, init_lane=init_lane)
+
+        step = 0
+
+        adj_action = self.ACTIONS_ALL["LANE_LEFT"] if self.init_lane == 0 else self.ACTIONS_ALL["LANE_RIGHT"]
+
+        while not done:
+            obs, reward, done, info = self.step(
+                (self.ACTIONS_ALL["IDLE"], 
+                 adj_action, 
+                 self.ACTIONS_ALL["FASTER"]))
+            self.render()
+            time.sleep(0.1)
+            step += 1
+            if self.DEBUG_CBF and step > 1:
+                done = True
+        time.sleep(1)
+
+        return self._vehicle_profiles()
+    
+    def simulate_ego_lc_crash(self, test_seed=0,  init_lane=0) -> Tuple[dict, dict]:
+        done = False
+        obs, _ = self.reset(testing_seeds=test_seed, init_lane=init_lane)
+
+        step = 0
+
+        ego_action = self.ACTIONS_ALL["LANE_RIGHT"] if self.init_lane == 0 else self.ACTIONS_ALL["LANE_LEFT"]
+
+        while not done:
+            obs, reward, done, info = self.step(
+                (self.ACTIONS_ALL["IDLE"], 
+                 self.ACTIONS_ALL["IDLE"], 
+                 ego_action))
+            self.render()
+            time.sleep(0.1)
+            step += 1
+            if self.DEBUG_CBF and step > 1:
+                done = True
+        time.sleep(1)
+
+        return self._vehicle_profiles()
 
 register(
     id="cbf-test-v0",
     entry_point="test.cbf:CBFTestEnv",
+)
+
+register(
+    id="cbf-test-v1",
+    entry_point="test.cbf:CBFMATestEnv",
 )

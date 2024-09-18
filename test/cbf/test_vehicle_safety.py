@@ -16,7 +16,6 @@ def parse_args():
         type=str,
         required=False,
         default="lon",
-        choices=["lon", "lon-lc", "lat"],
         help="Type of crash scenario being tested",
     )
 
@@ -82,9 +81,13 @@ def main():
     run_id = str(uuid4()).split("-")[-1]
 
     env_id = "cbf-test-v0"
+    if args.test_type == "lon":
+        env_id = "cbf-test-v0"
+    if args.test_type in ("lat_adj_left_lc", "lat_adj_right_lc", "lat_ego_left_lc", "lat_ego_right_lc"):
+        env_id = "cbf-test-v1"
 
     if args.extreme:
-        CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
+        CBFTestEnv.VEHICLE_SPEEDS = [30, 15, 15]
         CBFTestEnv.USE_RANDOM = False
 
     CBFTestEnv.DEBUG_CBF = args.debug
@@ -100,6 +103,14 @@ def main():
 
     if args.test_type == "lon":
         cprofiles = env.simulate_lon_crash()
+    elif args.test_type == "lat_adj_left_lc":
+        cprofiles = env.simulate_adj_lc_crash(init_lane=0)
+    elif args.test_type == "lat_adj_right_lc":
+        cprofiles = env.simulate_adj_lc_crash(init_lane=1)
+    elif args.test_type == "lat_ego_left_lc":
+        cprofiles = env.simulate_ego_lc_crash(init_lane=1)
+    elif args.test_type == "lat_ego_right_lc":
+        cprofiles = env.simulate_ego_lc_crash(init_lane=0)
     else:
         raise ValueError("CBF type '{0}' not supported".format(args.test_type))
 
