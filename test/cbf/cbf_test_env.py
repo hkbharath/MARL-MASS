@@ -173,7 +173,8 @@ class CBFTestEnv(AbstractEnv):
                     "action_hist": v.action_hist,
                 }
         return cprofiles
-    
+
+
 class CBFMATestEnv(CBFTestEnv):
     """
     An test environment to simulate a crash on the same lane. Using CBF safety layer should avoid the crash.
@@ -181,9 +182,10 @@ class CBFMATestEnv(CBFTestEnv):
 
     n_a = 5
 
-    VEHICLE_SPEEDS = [25, 22, 18]
+    VEHICLE_SPEEDS = [30, 30, 15]
     """ Speed of ego, adjacent, and leading vehicles"""
-    INIT_POS = [25, 50, 75]
+    # INIT_POS = [64, 59, 114]
+    INIT_POS = [25, 64, 114]
     """ Initial positions of ego, adjacent, and leading vehicles"""
 
     @classmethod
@@ -196,13 +198,13 @@ class CBFMATestEnv(CBFTestEnv):
                     "action_config": {
                         "type": "DiscreteMetaActionLC",
                         "lateral": True,
-                        "longitudinal": True
-                    }},
+                        "longitudinal": True,
+                    },
+                },
                 "observation": {
                     "type": "MultiAgentObservation",
-                    "observation_config": {
-                        "type": "KinematicLC"
-                    }},
+                    "observation_config": {"type": "KinematicLC"},
+                },
                 "controlled_vehicles": 3,
                 "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleL",
                 "screen_width": 1000,
@@ -219,7 +221,7 @@ class CBFMATestEnv(CBFTestEnv):
             }
         )
         return config
-    
+
     def _make_vehicle(self, init_lane: int = 0) -> None:
 
         road = self.road
@@ -227,14 +229,16 @@ class CBFMATestEnv(CBFTestEnv):
         self.init_lane = init_lane
 
         # vid info: 2: leading, 1: adjacent, 0:ego
-        for vid in [2,1,0]:
+        for vid in [2, 1, 0]:
             # This works only in two lane cases
             if vid == 1:
-                spawn_init_lane = 1-self.init_lane
+                spawn_init_lane = 1 - self.init_lane
             else:
                 spawn_init_lane = self.init_lane
 
-            init_pos = road.network.get_lane(("a", "b", spawn_init_lane)).position(self.INIT_POS[vid], 0)
+            init_pos = road.network.get_lane(("a", "b", spawn_init_lane)).position(
+                self.INIT_POS[vid], 0
+            )
             init_speed = self.VEHICLE_SPEEDS[vid]
             if self.USE_RANDOM:
                 init_speed = init_speed + np.random.rand() * 2
@@ -260,13 +264,16 @@ class CBFMATestEnv(CBFTestEnv):
 
         step = 0
 
-        adj_action = self.ACTIONS_ALL["LANE_LEFT"] if self.init_lane == 0 else self.ACTIONS_ALL["LANE_RIGHT"]
+        adj_action = (
+            self.ACTIONS_ALL["LANE_LEFT"]
+            if self.init_lane == 0
+            else self.ACTIONS_ALL["LANE_RIGHT"]
+        )
 
         while not done:
             obs, reward, done, info = self.step(
-                (self.ACTIONS_ALL["IDLE"], 
-                 adj_action, 
-                 self.ACTIONS_ALL["FASTER"]))
+                (self.ACTIONS_ALL["IDLE"], adj_action, self.ACTIONS_ALL["FASTER"])
+            )
             self.render()
             time.sleep(0.1)
             step += 1
@@ -275,20 +282,23 @@ class CBFMATestEnv(CBFTestEnv):
         time.sleep(1)
 
         return self._vehicle_profiles()
-    
-    def simulate_ego_lc_crash(self, test_seed=0,  init_lane=0) -> Tuple[dict, dict]:
+
+    def simulate_ego_lc_crash(self, test_seed=0, init_lane=0) -> Tuple[dict, dict]:
         done = False
         obs, _ = self.reset(testing_seeds=test_seed, init_lane=init_lane)
 
         step = 0
 
-        ego_action = self.ACTIONS_ALL["LANE_RIGHT"] if self.init_lane == 0 else self.ACTIONS_ALL["LANE_LEFT"]
+        ego_action = (
+            self.ACTIONS_ALL["LANE_RIGHT"]
+            if self.init_lane == 0
+            else self.ACTIONS_ALL["LANE_LEFT"]
+        )
 
         while not done:
             obs, reward, done, info = self.step(
-                (self.ACTIONS_ALL["IDLE"], 
-                 self.ACTIONS_ALL["IDLE"], 
-                 ego_action))
+                (self.ACTIONS_ALL["IDLE"], self.ACTIONS_ALL["IDLE"], ego_action)
+            )
             self.render()
             time.sleep(0.1)
             step += 1
@@ -297,6 +307,7 @@ class CBFMATestEnv(CBFTestEnv):
         time.sleep(1)
 
         return self._vehicle_profiles()
+
 
 register(
     id="cbf-test-v0",

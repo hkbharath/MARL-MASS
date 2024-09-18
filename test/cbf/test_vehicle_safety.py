@@ -83,11 +83,16 @@ def main():
     env_id = "cbf-test-v0"
     if args.test_type == "lon":
         env_id = "cbf-test-v0"
-    if args.test_type in ("lat_adj_left_lc", "lat_adj_right_lc", "lat_ego_left_lc", "lat_ego_right_lc"):
+    if args.test_type in (
+        "lat_adj_left_lc",
+        "lat_adj_right_lc",
+        "lat_ego_left_lc",
+        "lat_ego_right_lc",
+    ):
         env_id = "cbf-test-v1"
 
     if args.extreme:
-        CBFTestEnv.VEHICLE_SPEEDS = [30, 15, 15]
+        # CBFTestEnv.VEHICLE_SPEEDS = [30, 15, 15]
         CBFTestEnv.USE_RANDOM = False
 
     CBFTestEnv.DEBUG_CBF = args.debug
