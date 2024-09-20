@@ -106,7 +106,6 @@ class MDPLCVehicle(MDPVehicle):
             self.clip_actions()
             safe_action, safe_diff, safe_status = self.get_safe_action(dt)
 
-            self.steering_angle += safe_action["steering"] * dt
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
             v = self.speed * np.array(
                 [np.cos(self.heading + beta), np.sin(self.heading + beta)]
@@ -117,12 +116,14 @@ class MDPLCVehicle(MDPVehicle):
             self.heading += d_heading
 
             self.speed += safe_action["acceleration"] * dt
+            self.steering_angle += safe_action["steering"] * dt
 
             self.fg_params = {
                 "f": {
                     "x": self.velocity[0],
                     "y": self.velocity[1],
                     "heading": d_heading,
+                    "beta": beta,
                 },
                 "g": {
                     "vx": np.cos(self.heading + beta),
