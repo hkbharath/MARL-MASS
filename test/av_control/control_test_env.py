@@ -22,6 +22,7 @@ class ControlTestEnv(AbstractEnv):
     This environment can be used to generate control profiles while excuting the lane change manoeuvres.
     """
 
+    INIT_STEPS = -1
     INIT_SPEED = 25
     n_a = 5
 
@@ -125,22 +126,32 @@ class ControlTestEnv(AbstractEnv):
     def make_left_lc(self, test_seed=0) -> Tuple[dict, dict]:
         done = False
         obs, _ = self.reset(testing_seeds=test_seed, init_lane=1)
+        sim_step = 0
 
         while not done:
-            obs, reward, done, info = self.step(self.ACTIONS_ALL["LANE_LEFT"])
+            action = self.ACTIONS_ALL["IDLE"]
+            if sim_step > self.INIT_STEPS:
+                action = self.ACTIONS_ALL["LANE_LEFT"]
+            obs, reward, done, info = self.step(action=action)
             self.render()
             time.sleep(0.1)
+            sim_step += 1
 
         return self.vehicle.state_hist, self.vehicle.action_hist
 
     def make_right_lc(self, test_seed=0) -> Tuple[dict, dict]:
         done = False
         obs, _ = self.reset(testing_seeds=test_seed, init_lane=0)
+        sim_step = 0
 
         while not done:
-            obs, reward, done, info = self.step(self.ACTIONS_ALL["LANE_RIGHT"])
+            action = self.ACTIONS_ALL["IDLE"]
+            if sim_step > self.INIT_STEPS:
+                action = self.ACTIONS_ALL["LANE_RIGHT"]
+            obs, reward, done, info = self.step(action=action)
             self.render()
             time.sleep(0.1)
+            sim_step += 1
 
         return self.vehicle.state_hist, self.vehicle.action_hist
 
@@ -152,15 +163,20 @@ class ControlTestEnv(AbstractEnv):
         step_count = 0
         curr_action = self.ACTIONS_ALL["LANE_RIGHT"]
         next_action = self.ACTIONS_ALL["LANE_LEFT"]
+        sim_step = 0
 
         if init_lane == 1:
             curr_action, next_action = next_action, curr_action
 
         while not done:
-            obs, reward, done, info = self.step(curr_action)
+            action = self.ACTIONS_ALL["IDLE"]
+            if sim_step > self.INIT_STEPS:
+                action = curr_action
+            obs, reward, done, info = self.step(action=action)
             step_count += 1
             self.render()
             time.sleep(0.1)
+            sim_step += 1
 
             # swap lane change action to make alternate lane change
             if step_count == self.config["policy_frequency"]:

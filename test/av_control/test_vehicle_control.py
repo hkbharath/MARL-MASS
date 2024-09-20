@@ -35,18 +35,22 @@ def parse_args():
         "--rf",
         type=float,
         required=False,
-        default=0.150,
+        default=0.15,
         help="Reduction factor for steer_vel control",
     )
     parser.add_argument(
-        "--slow",
-        action="store_true",
-        help="Simulate vehicle with slower speed 15m/s",
+        "--exp", action="store_true", help="Store expected steering velocity ref values"
     )
     parser.add_argument(
-        "--fast",
+        "--midlc",
         action="store_true",
-        help="Simulate vehicle with slower speed 30m/s",
+        help="Delay lane change by a specified INIT_STEPS",
+    )
+    parser.add_argument(
+        "--fast", action="store_true", help="Set higher inital speed to 35 m/s"
+    )
+    parser.add_argument(
+        "--slow", action="store_true", help="Set lower inital speed to 15 m/s"
     )
 
     return parser.parse_args()
@@ -63,16 +67,20 @@ def log_profile(
 
     project_name = "Control profile"
     exp_name = "av-" + args.control + "-" + args.lc_dir
-    if args.slow:
-        exp_name += "slow"
-    elif args.fast:
-        exp_name += "fast"
+    exp_name = exp_name + "-exp" if args.exp else exp_name
+    exp_name = exp_name + "-midlc" if args.midlc else exp_name
+    exp_name = exp_name + "-fast" if args.fast else exp_name
+    exp_name = exp_name + "-slow" if args.slow else exp_name
 
     if args.control == "steer_vel":
         exp_name = "{0}-kp:{1}-rf:{2:1.3f}".format(
             exp_name, MDPLCVehicle.KP_STEER, MDPLCVehicle.STEER_TARGET_RF
         )
-    wandb = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
+
+    wandb_config = {"env_config": config, "test_config": vars(args)}
+    wandb = init_wandb(
+        config=wandb_config, project_name=project_name, exp_name=exp_name
+    )
 
     if wandb:
         wandb.define_metric("t_step")
@@ -105,13 +113,17 @@ def main():
         env_id = "control-test-steer_vel-v0"
         MDPLCVehicle.KP_STEER = args.kp
         MDPLCVehicle.STEER_TARGET_RF = args.rf
+        MDPLCVehicle.RECORD_EXPECTED = args.exp
+
+    if args.midlc:
+        ControlTestEnv.INIT_STEPS = 3  # 1s simulation time
+    if args.fast:
+        ControlTestEnv.INIT_SPEED = 35  # 1s simulation time
+        MDPLCVehicle.SPEED_MAX = 35
+    if args.slow:
+        ControlTestEnv.INIT_SPEED = 15  # 1s simulation time
 
     env: ControlTestEnv = gym.make(env_id)
-
-    if args.slow:
-        env.INIT_SPEED = 15
-    elif args.fast:
-        env.INIT_SPEED = 30
 
     state_hist = {}
     action_hist = {}
@@ -124,6 +136,7 @@ def main():
     elif args.lc_dir == "z_right":
         state_hist, action_hist = env.make_zigzag_lc(init_lane=1)
 
+    env.close()
     log_profile(
         config=env.config, args=args, state_hist=state_hist, action_hist=action_hist
     )
