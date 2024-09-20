@@ -22,6 +22,7 @@ class ControlTestEnv(AbstractEnv):
     This environment can be used to generate control profiles while excuting the lane change manoeuvres.
     """
 
+    INIT_SPEED = 25
     n_a = 5
 
     @classmethod
@@ -104,7 +105,7 @@ class ControlTestEnv(AbstractEnv):
         self.controlled_vehicles = []
 
         init_pos = road.network.get_lane(("a", "b", init_lane)).position(25, 0)
-        init_speed = np.random.rand() * 2 + 25
+        init_speed = self.INIT_SPEED
 
         safety_layer = self.config["safety_guarantee"]
         lateral_ctrl = self.config["lateral_control"]

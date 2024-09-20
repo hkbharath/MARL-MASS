@@ -38,6 +38,16 @@ def parse_args():
         default=0.150,
         help="Reduction factor for steer_vel control",
     )
+    parser.add_argument(
+        "--slow",
+        action="store_true",
+        help="Simulate vehicle with slower speed 15m/s",
+    )
+    parser.add_argument(
+        "--fast",
+        action="store_true",
+        help="Simulate vehicle with slower speed 30m/s",
+    )
 
     return parser.parse_args()
 
@@ -53,6 +63,11 @@ def log_profile(
 
     project_name = "Control profile"
     exp_name = "av-" + args.control + "-" + args.lc_dir
+    if args.slow:
+        exp_name += "slow"
+    elif args.fast:
+        exp_name += "fast"
+
     if args.control == "steer_vel":
         exp_name = "{0}-kp:{1}-rf:{2:1.3f}".format(
             exp_name, MDPLCVehicle.KP_STEER, MDPLCVehicle.STEER_TARGET_RF
@@ -92,6 +107,11 @@ def main():
         MDPLCVehicle.STEER_TARGET_RF = args.rf
 
     env: ControlTestEnv = gym.make(env_id)
+
+    if args.slow:
+        env.INIT_SPEED = 15
+    elif args.fast:
+        env.INIT_SPEED = 30
 
     state_hist = {}
     action_hist = {}
