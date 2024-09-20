@@ -7,9 +7,11 @@ from typing import Any, Tuple, Dict, Union
 
 
 class MDPLCVehicle(MDPVehicle):
-    # This is set to 1/simulation_freq as the process of steering can be assumed to be a simple proportional process.
-    KP_STEER = 15
-    STEER_TARGET_RF = 0.150  # Reduction factor to define a smaller target to reach.
+
+    KP_STEER = 20
+    """ Proportional constant for steering velocity control"""
+    STEER_TARGET_RF = 0.125
+    """ Reduction factor to define a smaller target to reach."""
 
     # [m/s2] 0-100 km/h in 4.63s
     MAX_ACC: float = 6

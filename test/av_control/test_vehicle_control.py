@@ -28,14 +28,14 @@ def parse_args():
         "--kp",
         type=float,
         required=False,
-        default=15,
+        default=20.0,
         help="KP_steer value for steer_vel control",
     )
     parser.add_argument(
         "--rf",
         type=float,
         required=False,
-        default=0.15,
+        default=0.125,
         help="Reduction factor for steer_vel control",
     )
     parser.add_argument(
