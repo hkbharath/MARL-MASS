@@ -177,7 +177,6 @@ class ControlTestEnv(AbstractEnv):
             self.render()
             time.sleep(0.1)
             sim_step += 1
-            sim_step += 1
 
             # swap lane change action to make alternate lane change
             if step_count == self.config["policy_frequency"]:
