@@ -401,14 +401,15 @@ class CBF_AV(CBFType):
         G = np.concatenate(
             (
                 np.expand_dims(-np.dot(self.p_lon, g), axis=0),
-                np.expand_dims(-np.dot(self.p_lat, g), axis=0),
+                # np.expand_dims(-np.dot(self.p_lat, g), axis=0),
                 [[1, 0]],
                 [[-1, 0]],
             )
         )
 
         # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
-        G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
+        # G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
+        G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
         print("G: ", G)
 
@@ -424,10 +425,10 @@ class CBF_AV(CBFType):
                 + (eta - 1) * np.dot(self.p_lon, x)
                 + eta * self.q_lon
                 + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
-                np.dot(self.p_lat, f)
-                + (eta - 1) * np.dot(self.p_lat, x)
-                + eta * self.q_lat
-                + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
+                # np.dot(self.p_lat, f)
+                # + (eta - 1) * np.dot(self.p_lat, x)
+                # + eta * self.q_lat
+                # + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
                 self.action_bound[0][1] - u_ll[0],
                 -self.action_bound[0][0] + u_ll[0],
             ]
@@ -476,10 +477,11 @@ class CBF_AV(CBFType):
         )  # np.dot(self.p_lat, x) + self.q_lat
         hlds_lat = self.hds(p=self.p_lat, q=self.q_lat, f=f, g=g, u=u_safe)
 
-        self.is_safe = (hls_lon >= 0) and (hls_lat >= 0)
-        self.is_invariant = ((hlds_lon + (eta - 1) * hls_lon) >= 0) and (
-            (hlds_lat + (eta - 1) * hls_lat) >= 0
-        )
+        self.is_safe = (hls_lon >= 0) #and (hls_lat >= 0)
+        # self.is_invariant = ((hlds_lon + (eta - 1) * hls_lon) >= 0) and (
+        #     (hlds_lat + (eta - 1) * hls_lat) >= 0
+        # )
+        self.is_invariant = ((hlds_lon + (eta - 1) * hls_lon) >= 0) 
 
         print("is safe: ", self.is_safe)
         print("is invariant: ", self.is_invariant)

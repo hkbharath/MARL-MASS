@@ -144,7 +144,8 @@ def safe_action_av(
             if (
                 veh.lane_index[:-1] == vehicle.lane_index[:-1]
                 and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
-                and -1 * vehicle.lane_distance_to(veh) <= veh.speed * CBFType.TAU
+                # and -1 * vehicle.lane_distance_to(veh) <= (veh.speed * CBFType.TAU + vehicle.LENGTH + 9)
+                and s_oar is None
             ):
                 print(
                     "=====================Rear adjacent Vehicle: {}=====================".format(
@@ -162,8 +163,7 @@ def safe_action_av(
                 veh.lane_index[:-1] == vehicle.lane_index[:-1]
                 and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
             )
-            and vehicle.lane_distance_to(veh) < vehicle.speed * CBFType.TAU
-            and s_ol is None
+            # and vehicle.lane_distance_to(veh) < vehicle.speed * CBFType.TAU
             and s_oa is None
         ):
             s_oa = veh.to_dict()
@@ -173,8 +173,8 @@ def safe_action_av(
                     veh.id
                 )
             )
-        # Leading vehicle in the same lane
-        elif veh.lane_index == vehicle.lane_index and s_ol is None:
+        # Leading vehicle in the same target lane
+        if veh.lane_index == vehicle.lane_index and s_ol is None:
             print(
                 "========================Leading Vehicle: {}=======================".format(
                     veh.id
