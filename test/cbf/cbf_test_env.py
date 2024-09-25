@@ -182,10 +182,11 @@ class CBFMATestEnv(CBFTestEnv):
 
     n_a = 5
 
-    VEHICLE_SPEEDS = [30, 30, 15]
+    # VEHICLE_SPEEDS = [30, 30, 15]
+    VEHICLE_SPEEDS = [25, 25, 20]
     """ Speed of ego, adjacent, and leading vehicles"""
-    # INIT_POS = [64, 59, 114]
-    INIT_POS = [25, 64, 114]
+    INIT_POS = [25, 50, 75]
+    # INIT_POS = [25, 75, 125]
     """ Initial positions of ego, adjacent, and leading vehicles"""
 
     @classmethod
@@ -240,8 +241,6 @@ class CBFMATestEnv(CBFTestEnv):
                 self.INIT_POS[vid], 0
             )
             init_speed = self.VEHICLE_SPEEDS[vid]
-            if self.USE_RANDOM:
-                init_speed = init_speed + np.random.rand() * 2
 
             safety_layer = self.config["safety_guarantee"]
             lateral_ctrl = self.config["lateral_control"]
@@ -271,9 +270,20 @@ class CBFMATestEnv(CBFTestEnv):
         )
 
         while not done:
-            obs, reward, done, info = self.step(
-                (self.ACTIONS_ALL["IDLE"], adj_action, self.ACTIONS_ALL["FASTER"])
+            action = (
+                self.ACTIONS_ALL["IDLE"],
+                self.ACTIONS_ALL["IDLE"],
+                self.ACTIONS_ALL["FASTER"],
             )
+
+            # Start lane change after 1s
+            if step >= 5:
+                action = (
+                    self.ACTIONS_ALL["IDLE"],
+                    adj_action,
+                    self.ACTIONS_ALL["FASTER"],
+                )
+            obs, reward, done, info = self.step(action)
             self.render()
             time.sleep(0.1)
             step += 1

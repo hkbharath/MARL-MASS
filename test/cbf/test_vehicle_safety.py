@@ -5,7 +5,7 @@ from typing import Any, Union
 from uuid import uuid4
 from highway_env.vehicle.safety.cbf import CBFType
 
-from test.cbf import CBFTestEnv
+from test.cbf import CBFTestEnv, CBFMATestEnv
 from common.utils import init_wandb, log_profiles
 
 
@@ -50,6 +50,20 @@ def parse_args():
         action="store_true",
         help="Execute single simulation step to debug CBF values",
     )
+    parser.add_argument(
+        "--speeds",
+        type=str,
+        required=False,
+        # default="25,25,20",
+        help="Speed for the vehicles in the env",
+    )
+    parser.add_argument(
+        "--ix",
+        type=str,
+        required=False,
+        # default="25,50,75",
+        help="Initial x position for the vehicles in the env",
+    )
 
     return parser.parse_args()
 
@@ -64,6 +78,12 @@ def setup_logging(
 ) -> Any:
     project_name = "Safety layer"
     exp_name = args.exp_name + "-" + args.safety + "-" + args.test_type
+
+    if args.speeds is not None:
+        exp_name = exp_name + "-" + args.speeds
+    if args.ix is not None:
+        exp_name = exp_name + "-" + args.ix
+
     if args.extreme:
         exp_name = exp_name + "-extr"
     if args.safety != "none":
@@ -83,17 +103,20 @@ def main():
     env_id = "cbf-test-v0"
     if args.test_type == "lon":
         env_id = "cbf-test-v0"
-    if args.test_type in (
+        if args.extreme:
+            CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
+            CBFTestEnv.USE_RANDOM = False
+    elif args.test_type in (
         "lat_adj_left_lc",
         "lat_adj_right_lc",
         "lat_ego_left_lc",
         "lat_ego_right_lc",
     ):
         env_id = "cbf-test-v1"
-
-    if args.extreme:
-        # CBFTestEnv.VEHICLE_SPEEDS = [30, 15, 15]
-        CBFTestEnv.USE_RANDOM = False
+        if args.speeds is not None:
+            CBFMATestEnv.VEHICLE_SPEEDS = [int(v) for v in args.speeds.split(",")]
+        if args.ix is not None:
+            CBFMATestEnv.INIT_POS = [int(v) for v in args.ix.split(",")]
 
     CBFTestEnv.DEBUG_CBF = args.debug
 

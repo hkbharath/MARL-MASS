@@ -42,11 +42,17 @@ class MDPLCVehicle(MDPVehicle):
         self.t_step = 0.0
         self.action_hist = []
         self.state_hist = []
+        self.hl_action = None
 
         # Addition state parameter store current steering state
         self.steering_angle = 0
 
         self.fg_params = None
+
+    def act(self, action: Union[dict, str] = None) -> None:
+        if isinstance(action, str):
+            self.hl_action = action
+        super().act(action)
 
     def to_dict(
         self, origin_vehicle: "Vehicle" = None, observe_intentions: bool = True
@@ -178,12 +184,7 @@ class MDPLCVehicle(MDPVehicle):
         action_rec["ull_acceleration"] = self.action["acceleration"]
 
         # Fix this step to log high level behaviour
-        action_rec["lc_action"] = 1  # 'IDLE': 1
-        if self.lane_index != self.target_lane_index:
-            # lc_actions: 'LANE_LEFT': 0, 'LANE_RIGHT': 2,
-            # lane_index: left:0, right:1
-            _f, _t, _id = self.target_lane_index
-            action_rec["lc_action"] = 0 if _id == 0 else 2
+        action_rec["lc_action"] = self.get_hl_action_map(self.hl_action)
 
         if safe_diff is not None:
             action_rec["safe_diff"] = safe_diff
@@ -210,3 +211,15 @@ class MDPLCVehicle(MDPVehicle):
             perception_dist=self.PERCEPTION_DIST,
             action=self.action,
         )
+
+    def get_hl_action_map(self, a_str: str) -> int:
+        # picked from AbstractEnv
+        ACTIONS_ALL = {
+            "LANE_LEFT": 0,
+            "IDLE": 1,
+            "LANE_RIGHT": 2,
+            "FASTER": 3,
+            "SLOWER": 4,
+        }
+
+        return ACTIONS_ALL[a_str]
