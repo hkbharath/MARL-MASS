@@ -163,7 +163,6 @@ def safe_action_av(
                 veh.lane_index[:-1] == vehicle.lane_index[:-1]
                 and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
             )
-            # and vehicle.lane_distance_to(veh) < vehicle.speed * CBFType.TAU
             and s_oa is None
         ):
             s_oa = veh.to_dict()
