@@ -96,6 +96,9 @@ class CBFType:
         """
         raise NotImplementedError("subclass must implement check_dims")
 
+    def define_pq(self, x:np.array) -> None:
+        return
+
     def control_barrier(self, u_ll, f, g, x, dt=0):
         u_ll = np.squeeze(u_ll)
         # Set up Quadratic Program to satisfy CBF
@@ -103,6 +106,8 @@ class CBFType:
         print("f: ", f)
         print("g: ", g)
         print("x: ", x)
+
+        self.define_pq(x=x)
 
         G = self.get_G(g=g)
         h = self.get_h(f=f, g=g, x=x, u_ll=u_ll)
@@ -355,12 +360,55 @@ class CBF_AV(CBFType):
         else:
             raise ValueError("CBF constraint is implemented for 2 lanes only")
 
+        # # velocity of ego vehicle
+        # self.vx = np.ravel(
+        #     np.array(
+        #         [
+        #             [0, 0, 1, 0, 0, 0],
+        #             [0, 0, 0, 0, 0, 0],
+        #             [0, 0, 0, 0, 0, 0],
+        #             [0, 0, 0, 0, 0, 0],
+        #         ]
+        #     )
+        # )
+
+        # # velocity of rear vehicle
+        # self.vxr = np.ravel(
+        #     np.array(
+        #         [
+        #             [0, 0, 0, 0, 0, 0],
+        #             [0, 0, 0, 0, 0, 0],
+        #             [0, 0, 0, 0, 0, 0],
+        #             [0, 0, 1, 0, 0, 0],
+        #         ]
+        #     )
+        # )
+
+        # # safe longitudinal distance
+        # self.x_safe = self.TAU * self.vx
+        # self.xr_safe = self.TAU * self.vxr
+
+        # # Logitudinal CBF: h_lon
+        # self.p_lon = self.dx_l - self.x_safe
+        # self.p_lonr = self.dx_r - self.xr_safe
+        # self.p_lona = self.dx_a - self.x_safe
+
+        # # reduce one vehicle length, as position correspond to centre of the car
+        # self.q_lon = -self.vehicle_size[0]
+
+        # # Lateral CBF: h_lat
+        # self.p_lat = self.dy_a
+        # self.p_latr = self.dy_ar
+        # self.q_lat = -self.vehicle_size[1] + 0.1
+
+    def define_pq(self, x: np.array) -> None:
+
         # velocity of ego vehicle
-        self.vx = np.ravel(
+        dvx = np.ravel(
             np.array(
                 [
                     [0, 0, 1, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, -1, 0, 0, 0],
                     [0, 0, 0, 0, 0, 0],
                     [0, 0, 0, 0, 0, 0],
                 ]
@@ -368,10 +416,10 @@ class CBF_AV(CBFType):
         )
 
         # velocity of rear vehicle
-        self.vxr = np.ravel(
+        dvxr = np.ravel(
             np.array(
                 [
-                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, -1, 0, 0, 0],
                     [0, 0, 0, 0, 0, 0],
                     [0, 0, 0, 0, 0, 0],
                     [0, 0, 1, 0, 0, 0],
@@ -379,23 +427,28 @@ class CBF_AV(CBFType):
             )
         )
 
-        # safe longitudinal distance
-        self.x_safe = self.TAU * self.vx
-        self.xr_safe = self.TAU * self.vxr
+        # breaking dist
+        self.x_safe = np.sum((dvx * np.square(x))/(2*CBFType.ACCELERATION_RANGE[1]))
+        self.xr_safe = np.sum((dvxr * np.square(x))/(2*CBFType.ACCELERATION_RANGE[1]))
+        print("x_safe: ", self.x_safe)
 
         # Logitudinal CBF: h_lon
-        self.p_lon = self.dx_l - self.x_safe
-        self.p_lonr = self.dx_r - self.xr_safe
-        self.p_lona = self.dx_a - self.x_safe
+        self.p_lon = self.dx_l
+        self.p_lonr = self.dx_r
+        self.p_lona = self.dx_a
 
         # reduce one vehicle length, as position correspond to centre of the car
-        self.q_lon = -self.vehicle_size[0]
+        self.q_lon = -self.vehicle_size[0] - self.x_safe
+        self.q_lonr = -self.vehicle_size[0] - self.xr_safe
 
         # Lateral CBF: h_lat
         self.p_lat = self.dy_a
         self.p_latr = self.dy_ar
-        self.q_lat = -self.vehicle_size[1] + 0.1
-
+        self.q_lat = -self.vehicle_size[1]
+    
+    def hds(self, p, q, f, g, u):
+        return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u)
+    
     def get_G(self, g):
 
         G = np.concatenate(
@@ -423,7 +476,7 @@ class CBF_AV(CBFType):
             [
                 np.dot(self.p_lon, f)
                 + (eta - 1) * np.dot(self.p_lon, x)
-                + eta * self.q_lon
+                + (eta - 1) * self.q_lon
                 + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
                 # np.dot(self.p_lat, f)
                 # + (eta - 1) * np.dot(self.p_lat, x)
@@ -442,8 +495,8 @@ class CBF_AV(CBFType):
         hls_lona = self.hs(p=self.p_lona, q=self.q_lon, x=x)
         hlds_lona = self.hds(p=self.p_lona, q=self.q_lon, f=f, g=g, u=u)
 
-        hls_lonr = self.hs(p=self.p_lonr, q=self.q_lon, x=x)
-        hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lon, f=f, g=g, u=u)
+        hls_lonr = self.hs(p=self.p_lonr, q=self.q_lonr, x=x)
+        hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lonr, f=f, g=g, u=u)
 
         hls_lat = self.hs(p=self.p_lat, q=self.q_lat, x=x)
         hlds_lat = self.hds(p=self.p_lat, q=self.q_lat, f=f, g=g, u=u)
