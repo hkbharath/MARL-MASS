@@ -96,7 +96,7 @@ class CBFType:
         """
         raise NotImplementedError("subclass must implement check_dims")
 
-    def define_pq(self, x:np.array) -> None:
+    def define_pq(self, x: np.array) -> None:
         return
 
     def control_barrier(self, u_ll, f, g, x, dt=0):
@@ -257,6 +257,12 @@ class CBF_AV(CBFType):
 
     # GAMMA_B = 1.6251
     # GAMMA_LAT = 1.625
+
+    STATE_SPACE = ["x", "heading"]
+
+    ACCELERATION_RANGE = (-12.5, 6)
+    """Acceleration range: in m/s²."""
+
     def __init__(
         self,
         action_size: int,
@@ -282,10 +288,10 @@ class CBF_AV(CBFType):
         self.dx_l = np.ravel(
             np.array(
                 [
-                    [-1, 0, 0, 0, 0, 0],
-                    [1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
+                    [-1, 0],
+                    [1, 0],
+                    [0, 0],
+                    [0, 0],
                 ]
             )
         )
@@ -294,10 +300,10 @@ class CBF_AV(CBFType):
         self.dx_a = np.ravel(
             np.array(
                 [
-                    [-1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
+                    [-1, 0],
+                    [0, 0],
+                    [1, 0],
+                    [0, 0],
                 ]
             )
         )
@@ -306,149 +312,40 @@ class CBF_AV(CBFType):
         self.dx_r = np.ravel(
             np.array(
                 [
-                    [1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [-1, 0, 0, 0, 0, 0],
+                    [1, 0],
+                    [0, 0],
+                    [0, 0],
+                    [-1, 0],
                 ]
             )
         )
 
-        # \delta y with adjacent and rear vehicle
-        if vehicle_lane == 0:
-            self.dy_a = np.ravel(
-                np.array(
-                    [
-                        [0, -1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                    ]
-                )
-            )
-            self.dy_ar = np.ravel(
-                np.array(
-                    [
-                        [0, -1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0, 0],
-                    ]
-                )
-            )
-        elif vehicle_lane == 1:
-            self.dy_a = np.ravel(
-                np.array(
-                    [
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, -1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                    ]
-                )
-            )
-            self.dy_ar = np.ravel(
-                np.array(
-                    [
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0],
-                        [0, -1, 0, 0, 0, 0],
-                    ]
-                )
-            )
-        else:
-            raise ValueError("CBF constraint is implemented for 2 lanes only")
-
-        # # velocity of ego vehicle
-        # self.vx = np.ravel(
-        #     np.array(
-        #         [
-        #             [0, 0, 1, 0, 0, 0],
-        #             [0, 0, 0, 0, 0, 0],
-        #             [0, 0, 0, 0, 0, 0],
-        #             [0, 0, 0, 0, 0, 0],
-        #         ]
-        #     )
-        # )
-
-        # # velocity of rear vehicle
-        # self.vxr = np.ravel(
-        #     np.array(
-        #         [
-        #             [0, 0, 0, 0, 0, 0],
-        #             [0, 0, 0, 0, 0, 0],
-        #             [0, 0, 0, 0, 0, 0],
-        #             [0, 0, 1, 0, 0, 0],
-        #         ]
-        #     )
-        # )
-
-        # # safe longitudinal distance
-        # self.x_safe = self.TAU * self.vx
-        # self.xr_safe = self.TAU * self.vxr
-
-        # # Logitudinal CBF: h_lon
-        # self.p_lon = self.dx_l - self.x_safe
-        # self.p_lonr = self.dx_r - self.xr_safe
-        # self.p_lona = self.dx_a - self.x_safe
-
-        # # reduce one vehicle length, as position correspond to centre of the car
-        # self.q_lon = -self.vehicle_size[0]
-
-        # # Lateral CBF: h_lat
-        # self.p_lat = self.dy_a
-        # self.p_latr = self.dy_ar
-        # self.q_lat = -self.vehicle_size[1] + 0.1
+        self.safe_dists:List[int] = [0,0,0]
 
     def define_pq(self, x: np.array) -> None:
-
-        # velocity of ego vehicle
-        dvx = np.ravel(
-            np.array(
-                [
-                    [0, 0, 1, 0, 0, 0],
-                    [0, 0, -1, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                ]
-            )
-        )
-
-        # velocity of rear vehicle
-        dvxr = np.ravel(
-            np.array(
-                [
-                    [0, 0, -1, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0],
-                    [0, 0, 1, 0, 0, 0],
-                ]
-            )
-        )
-
-        # breaking dist
-        self.x_safe = np.sum((dvx * np.square(x))/(2*CBFType.ACCELERATION_RANGE[1]))
-        self.xr_safe = np.sum((dvxr * np.square(x))/(2*CBFType.ACCELERATION_RANGE[1]))
-        print("x_safe: ", self.x_safe)
+        # print("x_safe_dists: ", self.safe_dists)
 
         # Logitudinal CBF: h_lon
         self.p_lon = self.dx_l
-        self.p_lonr = self.dx_r
         self.p_lona = self.dx_a
+        self.p_lonr = self.dx_r
+
+        # print("p_lon: ", self.p_lon)
+        # print("p_lona: ", self.p_lona)
+        # print("p_lonr: ", self.p_lonr)
 
         # reduce one vehicle length, as position correspond to centre of the car
-        self.q_lon = -self.vehicle_size[0] - self.x_safe
-        self.q_lonr = -self.vehicle_size[0] - self.xr_safe
+        self.q_lon = -self.vehicle_size[0] - self.safe_dists[0]
+        self.q_lona = -self.vehicle_size[0] - self.safe_dists[1]
+        self.q_lonr = -self.vehicle_size[0] - self.safe_dists[2]
 
-        # Lateral CBF: h_lat
-        self.p_lat = self.dy_a
-        self.p_latr = self.dy_ar
-        self.q_lat = -self.vehicle_size[1]
-    
+        # print("q_lon: ", self.q_lon)
+        # print("q_lona: ", self.q_lona)
+        # print("q_lonr: ", self.q_lonr)
+        
     def hds(self, p, q, f, g, u):
         return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u)
-    
+
     def get_G(self, g):
 
         G = np.concatenate(
@@ -492,28 +389,17 @@ class CBF_AV(CBFType):
 
     def is_lc_allowed(self, f, g, x, u):
         eta = self.GAMMA_B
-        hls_lona = self.hs(p=self.p_lona, q=self.q_lon, x=x)
-        hlds_lona = self.hds(p=self.p_lona, q=self.q_lon, f=f, g=g, u=u)
+        hls_lona = self.hs(p=self.p_lona, q=self.q_lona, x=x)
+        hlds_lona = self.hds(p=self.p_lona, q=self.q_lona, f=f, g=g, u=u)
 
         hls_lonr = self.hs(p=self.p_lonr, q=self.q_lonr, x=x)
         hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lonr, f=f, g=g, u=u)
 
-        hls_lat = self.hs(p=self.p_lat, q=self.q_lat, x=x)
-        hlds_lat = self.hds(p=self.p_lat, q=self.q_lat, f=f, g=g, u=u)
-
-        hls_latr = self.hs(p=self.p_latr, q=self.q_lat, x=x)
-        hlds_latr = self.hds(p=self.p_latr, q=self.q_lat, f=f, g=g, u=u)
-
         print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
-        print("h_latr(s), h_latr(s'): ", hls_latr, hlds_latr)
 
         # if either lateral or longitudinal condition is satisified for both vehicle in front and read, lc is allowed
-        return (
-            (hlds_lona + (eta - 1) * hls_lona) >= 0
-            or (hlds_lat + (eta - 1) * hls_lat) >= 0
-        ) and (
+        return ((hlds_lona + (eta - 1) * hls_lona) >= 0) and (
             (hlds_lonr + (eta - 1) * hls_lonr) >= 0
-            or (hlds_latr + (eta - 1) * hls_latr) >= 0
         )
 
     def update_status(self, is_opt, f, g, x, u_safe, eta=None):
@@ -525,21 +411,12 @@ class CBF_AV(CBFType):
         )  # np.dot(self.p_lon, x) + self.q_lon
         hlds_lon = self.hds(p=self.p_lon, q=self.q_lon, f=f, g=g, u=u_safe)
 
-        hls_lat = self.hs(
-            p=self.p_lat, q=self.q_lat, x=x
-        )  # np.dot(self.p_lat, x) + self.q_lat
-        hlds_lat = self.hds(p=self.p_lat, q=self.q_lat, f=f, g=g, u=u_safe)
-
-        self.is_safe = (hls_lon >= 0) #and (hls_lat >= 0)
-        # self.is_invariant = ((hlds_lon + (eta - 1) * hls_lon) >= 0) and (
-        #     (hlds_lat + (eta - 1) * hls_lat) >= 0
-        # )
-        self.is_invariant = ((hlds_lon + (eta - 1) * hls_lon) >= 0) 
+        self.is_safe = hls_lon >= 0
+        self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= 0
 
         print("is safe: ", self.is_safe)
         print("is invariant: ", self.is_invariant)
         print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
-        print("h_lat(s), h_lat(s'): ", hls_lat, hlds_lat)
         print("eta: ", eta)
 
 

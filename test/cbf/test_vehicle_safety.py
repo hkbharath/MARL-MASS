@@ -77,6 +77,8 @@ def setup_logging(
     exp_name: Union[str, None] = None,
 ) -> Any:
     project_name = "Safety layer"
+    if args.exp_name.endswith("-test"):
+        project_name += " Tests"
     exp_name = args.exp_name + "-" + args.safety + "-" + args.test_type
 
     if args.speeds is not None:
