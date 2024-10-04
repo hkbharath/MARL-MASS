@@ -7,6 +7,7 @@ from highway_env.vehicle.safety.cbf import CBFType
 
 from test.cbf import CBFTestEnv, CBFMATestEnv
 from common.utils import init_wandb, log_profiles
+from highway_env.vehicle.safe_controller import MDPLCVehicle
 
 
 def parse_args():
@@ -63,6 +64,14 @@ def parse_args():
         required=False,
         # default="25,50,75",
         help="Initial x position for the vehicles in the env",
+    )
+    parser.add_argument(
+        "--safe-dist",
+        type=str,
+        required=False,
+        default="theadway",
+        choices=["theadway", "braking"],
+        help="Type of safe distance used in CBF constraints",
     )
 
     return parser.parse_args()
@@ -121,6 +130,7 @@ def main():
             CBFMATestEnv.INIT_POS = [int(v) for v in args.ix.split(",")]
 
     CBFTestEnv.DEBUG_CBF = args.debug
+    MDPLCVehicle.SAFE_DIST = args.safe_dist
 
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety

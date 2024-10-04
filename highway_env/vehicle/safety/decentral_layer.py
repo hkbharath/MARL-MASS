@@ -99,6 +99,7 @@ def safe_action_av(
     vehicle: "MDPLCVehicle",
     road: "Road",
     dt: float,
+    safe_dist:str,
     perception_dist,
 ):
 
@@ -246,16 +247,24 @@ def safe_action_av(
         ),
     )
 
-    # Evaluate braking distance for longitudinal safety
     v_ol = s_ol["vx"] if s_ol is not None else 0
-    sd_l = abs(v_ol**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
-
     v_oa = s_oa["vx"] if s_oa is not None else 0
-    sd_a = abs(v_oa**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
-
     v_oar = s_oar["vx"] if s_oar is not None else 0
-    sd_ar = abs(s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]) - v_oar**2/(2*cbf.ACCELERATION_RANGE[0]))
-    cbf.safe_dists = [sd_l, sd_a, sd_ar]
+
+    if safe_dist == "braking":
+    # Evaluate braking distance for longitudinal safety
+        sd_l = abs(v_ol**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
+        sd_a = abs(v_oa**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
+        sd_ar = abs(s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]) - v_oar**2/(2*cbf.ACCELERATION_RANGE[0]))
+        cbf.safe_dists = [sd_l, sd_a, sd_ar]
+        print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
+    elif safe_dist == "theadway":
+        # Safe dist using Time hadway [s]
+        v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
+        cbf.safe_dists = [s_e["vx"]*cbf.TAU, s_e["vx"]*cbf.TAU, v_oar*cbf.TAU]
+        print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
+    else:
+        raise ValueError("safe_dist type {} not supported".format(safe_dist))
 
     # v_ll = s_e["vx"] + action["acceleration"] * dt
 
@@ -438,7 +447,7 @@ def safe_action_av_lateral(
 #     return
 
 
-def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:float, **kwargs):
+def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:float, safe_dist:str="theadway", **kwargs):
     """
     Implements decentralised safety layer to evaluate safe actions using CBF.
     """
@@ -464,7 +473,7 @@ def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:flo
             vehicle_size=[vehicle.LENGTH, vehicle.WIDTH],
             vehicle_lane=vehicle.lane_index[2],
         )
-        return safe_action_av(cbf=cbf, action=action, vehicle=vehicle, dt=dt, **kwargs)
+        return safe_action_av(cbf=cbf, action=action, vehicle=vehicle, dt=dt, safe_dist=safe_dist, **kwargs)
     # elif safety_type == "cav":
     #     return safe_action_cav(cbf=cbf, **kwargs)
     else:

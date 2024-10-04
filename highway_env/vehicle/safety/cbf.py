@@ -398,8 +398,8 @@ class CBF_AV(CBFType):
         print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
 
         # if either lateral or longitudinal condition is satisified for both vehicle in front and read, lc is allowed
-        return ((hlds_lona + (eta - 1) * hls_lona) >= 0) and (
-            (hlds_lonr + (eta - 1) * hls_lonr) >= 0
+        return ((hls_lona >= 0) and (hlds_lona + (eta - 1) * hls_lona) >= 0) and (
+            (hls_lonr >= 0) and (hlds_lonr + (eta - 1) * hls_lonr) >= 0
         )
 
     def update_status(self, is_opt, f, g, x, u_safe, eta=None):
@@ -411,8 +411,8 @@ class CBF_AV(CBFType):
         )  # np.dot(self.p_lon, x) + self.q_lon
         hlds_lon = self.hds(p=self.p_lon, q=self.q_lon, f=f, g=g, u=u_safe)
 
-        self.is_safe = hls_lon >= 0
-        self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= 0
+        self.is_safe = hls_lon >= -1e-6
+        self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= -1e-6
 
         print("is safe: ", self.is_safe)
         print("is invariant: ", self.is_invariant)

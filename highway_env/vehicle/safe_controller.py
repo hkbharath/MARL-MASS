@@ -20,6 +20,8 @@ class MDPLCVehicle(MDPVehicle):
     MIN_ACC: float = -12.5
     PERCEPTION_DIST = 6 * MDPVehicle.SPEED_MAX
 
+    SAFE_DIST:str = "theadway"
+
     def __init__(
         self,
         safety_layer: str = None,
@@ -210,6 +212,7 @@ class MDPLCVehicle(MDPVehicle):
             dt=dt,
             perception_dist=self.PERCEPTION_DIST,
             action=self.action,
+            safe_dist=self.SAFE_DIST
         )
 
     def get_hl_action_map(self, a_str: str) -> int:
