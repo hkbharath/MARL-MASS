@@ -14,6 +14,7 @@ from highway_env.road.lane import LineType, StraightLane
 from highway_env.road.road import Road, RoadNetwork
 from highway_env.envs.common.action import Action
 from highway_env.vehicle.safe_controller import MDPLCVehicle
+from highway_env.road.objects import Obstacle
 
 
 class CBFTestEnv(AbstractEnv):
@@ -53,6 +54,7 @@ class CBFTestEnv(AbstractEnv):
                 "show_trajectories": False,
                 "lateral_control": "steer_vel",
                 "safety_guarantee": "cbf-avlon",  # Options: "none", "priority", "cbf-avlon", "cbf-av", "cbf-cav"
+                "obstacle": True,
             }
         )
         return config
@@ -95,13 +97,17 @@ class CBFTestEnv(AbstractEnv):
         # Highway lanes
         c, s, n = LineType.CONTINUOUS_LINE, LineType.STRIPED, LineType.NONE
         net.add_lane("a", "b", StraightLane([0, 0], [300, 0], line_types=[c, s]))
-        net.add_lane("a", "b", StraightLane([0, 4], [300, 4], line_types=[n, c]))
+
+        rab = StraightLane([0, 4], [300, 4], line_types=[n, c])
+        net.add_lane("a", "b", rab)
 
         road = Road(
             network=net,
             np_random=self.np_random,
             record_history=self.config["show_trajectories"],
         )
+        if self.config["obstacle"]:
+            road.objects.append(Obstacle(road, rab.position(225, 0)))
         self.road = road
 
     def _make_vehicle(self, init_lane: int = 0) -> None:

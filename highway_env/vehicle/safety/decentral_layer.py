@@ -99,7 +99,7 @@ def safe_action_av(
     vehicle: "MDPLCVehicle",
     road: "Road",
     dt: float,
-    safe_dist:str,
+    safe_dist: str,
     perception_dist,
 ):
 
@@ -131,12 +131,12 @@ def safe_action_av(
         else:
             sf_oa[k] = 0.0
     # Leading vehicles are ordered by increasing distance from the ego vehicle
-    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleL"]] = road.close_vehicles_to(
-        vehicle, perception_dist, count=5, see_behind=True
+    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleL"]] = (
+        road.close_vehicles_to(vehicle, perception_dist, count=5, see_behind=True)
     )
 
     sf_oar = copy.deepcopy(sf_oa)
-    sf_oar["x"] = s_e[k] - perception_dist - 1
+    sf_oar["x"] = s_e["x"] - perception_dist - 1
 
     s_ol, s_oa, s_oar = None, None, None
 
@@ -160,12 +160,9 @@ def safe_action_av(
         # AND is at dist shorter then lane change dist
         # AND found before the leading vehicle
         if (
-            (
-                veh.lane_index[:-1] == vehicle.lane_index[:-1]
-                and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
-            )
-            and s_oa is None
-        ):
+            veh.lane_index[:-1] == vehicle.lane_index[:-1]
+            and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
+        ) and s_oa is None:
             # This vehicle would have already changed state therefore, use old state
             # s_oa = veh.to_dict()
             s_oa = veh.state_hist[-1]
@@ -188,6 +185,25 @@ def safe_action_av(
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
             break
 
+    # Check for obstacles ahead in the lane
+    for other in road.objects:
+        if (s_ol is None) and abs(other.position[1] - vehicle.position[1]) <= 2:
+            print(
+                "========================Leading Obstacle: at {}=======================".format(
+                    other.position[0]
+                )
+            )
+            s_ol = other.to_dict()
+            sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
+        if (s_oa is None) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
+            print(
+                "========================Adjacent Obstacle: at {}=======================".format(
+                    other.position[0]
+                )
+            )
+            s_oa = other.to_dict()
+            sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
+
     fgp_e = vehicle.fg_params
     if fgp_e is None:
         raise AttributeError(
@@ -203,15 +219,27 @@ def safe_action_av(
             [
                 [0, 0],
                 [
-                    (s_ol["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[0] * dt**2) if s_ol is not None else 0,
+                    (
+                        (s_ol["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[0] * dt**2)
+                        if s_ol is not None
+                        else 0
+                    ),
                     0,
                 ],
                 [
-                    (s_oa["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[0] * dt**2) if s_oa is not None else 0,
+                    (
+                        (s_oa["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[0] * dt**2)
+                        if s_oa is not None
+                        else 0
+                    ),
                     0,
                 ],
                 [
-                    (s_oar["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[1] * dt**2) if s_oar is not None else 0,
+                    (
+                        (s_oar["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[1] * dt**2)
+                        if s_oar is not None
+                        else 0
+                    ),
                     0,
                 ],
             ]
@@ -252,16 +280,25 @@ def safe_action_av(
     v_oar = s_oar["vx"] if s_oar is not None else 0
 
     if safe_dist == "braking":
-    # Evaluate braking distance for longitudinal safety
-        sd_l = abs(v_ol**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
-        sd_a = abs(v_oa**2/(2*cbf.ACCELERATION_RANGE[0]) - s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]))
-        sd_ar = abs(s_e["vx"]**2/(2*cbf.ACCELERATION_RANGE[0]) - v_oar**2/(2*cbf.ACCELERATION_RANGE[0]))
+        # Evaluate braking distance for longitudinal safety
+        sd_l = abs(
+            v_ol**2 / (2 * cbf.ACCELERATION_RANGE[0])
+            - s_e["vx"] ** 2 / (2 * cbf.ACCELERATION_RANGE[0])
+        )
+        sd_a = abs(
+            v_oa**2 / (2 * cbf.ACCELERATION_RANGE[0])
+            - s_e["vx"] ** 2 / (2 * cbf.ACCELERATION_RANGE[0])
+        )
+        sd_ar = abs(
+            s_e["vx"] ** 2 / (2 * cbf.ACCELERATION_RANGE[0])
+            - v_oar**2 / (2 * cbf.ACCELERATION_RANGE[0])
+        )
         cbf.safe_dists = [sd_l, sd_a, sd_ar]
         print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
     elif safe_dist == "theadway":
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
-        cbf.safe_dists = [s_e["vx"]*cbf.TAU, s_e["vx"]*cbf.TAU, v_oar*cbf.TAU]
+        cbf.safe_dists = [s_e["vx"] * cbf.TAU, s_e["vx"] * cbf.TAU, v_oar * cbf.TAU]
         print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
@@ -277,7 +314,7 @@ def safe_action_av(
     pred_v.act(action=action)
     pred_v.step(dt=dt)
     ps_e = pred_v.to_dict()
-    dpsi_ll = (ps_e["heading"] - s_e["heading"])/dt
+    dpsi_ll = (ps_e["heading"] - s_e["heading"]) / dt
     u_ll = np.array([ps_e["vx"], dpsi_ll])
     u_safe = cbf.control_barrier(u_ll, f, g, x, dt)
 
@@ -292,10 +329,13 @@ def safe_action_av(
 
     print("u_safe: ", u_safe)
 
-    u_safe[0] = (u_safe[0] - s_e["vx"])/dt
+    u_safe[0] = (u_safe[0] - vehicle.speed) / dt
 
     safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
-    safe_diff = {"acceleration": u_safe[0] - action["acceleration"], "steering": u_safe[1] - action["steering"]}
+    safe_diff = {
+        "acceleration": u_safe[0] - action["acceleration"],
+        "steering": u_safe[1] - action["steering"],
+    }
     return safe_action, safe_diff, cbf.get_status()
 
 
@@ -447,7 +487,14 @@ def safe_action_av_lateral(
 #     return
 
 
-def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:float, safe_dist:str="theadway", **kwargs):
+def safety_layer(
+    safety_type: str,
+    action: dict,
+    vehicle: "MDPLCVehicle",
+    dt: float,
+    safe_dist: str = "theadway",
+    **kwargs
+):
     """
     Implements decentralised safety layer to evaluate safe actions using CBF.
     """
@@ -461,11 +508,11 @@ def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:flo
             vehicle_lane=vehicle.lane_index[2],
         )
         return safe_action_longitudinal(
-            cbf=cbf, action=action, vehicle=vehicle, dt=dt **kwargs
+            cbf=cbf, action=action, vehicle=vehicle, dt=dt**kwargs
         )
     elif safety_type == "av":
-        v_min = vehicle.speed + vehicle.MIN_ACC*dt
-        v_max = vehicle.speed + vehicle.MAX_ACC*dt
+        v_min = vehicle.speed + vehicle.MIN_ACC * dt
+        v_max = vehicle.speed + vehicle.MAX_ACC * dt
         cbf: CBFType = cbf_factory(
             safety_type,
             action_size=len(action),
@@ -473,7 +520,14 @@ def safety_layer(safety_type: str, action: dict, vehicle: "MDPLCVehicle", dt:flo
             vehicle_size=[vehicle.LENGTH, vehicle.WIDTH],
             vehicle_lane=vehicle.lane_index[2],
         )
-        return safe_action_av(cbf=cbf, action=action, vehicle=vehicle, dt=dt, safe_dist=safe_dist, **kwargs)
+        return safe_action_av(
+            cbf=cbf,
+            action=action,
+            vehicle=vehicle,
+            dt=dt,
+            safe_dist=safe_dist,
+            **kwargs
+        )
     # elif safety_type == "cav":
     #     return safe_action_cav(cbf=cbf, **kwargs)
     else:

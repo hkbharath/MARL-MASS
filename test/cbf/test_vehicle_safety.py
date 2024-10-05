@@ -73,6 +73,11 @@ def parse_args():
         choices=["theadway", "braking"],
         help="Type of safe distance used in CBF constraints",
     )
+    parser.add_argument(
+        "--obstacle",
+        action="store_true",
+        help="Add obstacle at 225m in the test simulation",
+    )
 
     return parser.parse_args()
 
@@ -134,6 +139,7 @@ def main():
 
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
+    env.config["obstacle"] = args.obstacle
 
     wandb_run = None
     if not args.debug:

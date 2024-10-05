@@ -255,7 +255,7 @@ class CBF_AV_Longitudinal(CBFType):
 class CBF_AV(CBFType):
     """Single agent CBF for individual AVs defined in Wang 2020. The lateral and longitudinal safe distance constrains are implemented in this class"""
 
-    # GAMMA_B = 1.6251
+    GAMMA_B = 1.025
     # GAMMA_LAT = 1.625
 
     STATE_SPACE = ["x", "heading"]
@@ -320,7 +320,7 @@ class CBF_AV(CBFType):
             )
         )
 
-        self.safe_dists:List[int] = [0,0,0]
+        self.safe_dists: List[int] = [0, 0, 0]
 
     def define_pq(self, x: np.array) -> None:
         # print("x_safe_dists: ", self.safe_dists)
@@ -342,7 +342,7 @@ class CBF_AV(CBFType):
         # print("q_lon: ", self.q_lon)
         # print("q_lona: ", self.q_lona)
         # print("q_lonr: ", self.q_lonr)
-        
+
     def hds(self, p, q, f, g, u):
         return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u)
 
