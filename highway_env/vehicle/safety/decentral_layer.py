@@ -103,9 +103,9 @@ def safe_action_av(
     perception_dist,
 ):
 
-    print(
-        "========================Vehicle:{}=======================".format(vehicle.id)
-    )
+    # print(
+    #     "========================Vehicle:{}=======================".format(vehicle.id)
+    # )
     perception_dist = 6 * vehicle.SPEED_MAX
 
     s_e = vehicle.to_dict()
@@ -148,11 +148,11 @@ def safe_action_av(
                 and abs(veh.lane_index[-1] - vehicle.lane_index[-1]) == 1
                 and s_oar is None
             ):
-                print(
-                    "=====================Rear adjacent Vehicle: {}=====================".format(
-                        veh.id
-                    )
-                )
+                # print(
+                #     "=====================Rear adjacent Vehicle: {}=====================".format(
+                #         veh.id
+                #     )
+                # )
                 s_oar = veh.to_dict()
                 sf_oar = {k: s_oar[k] if k in s_oar else 0 for k in cbf.STATE_SPACE}
             continue
@@ -167,18 +167,18 @@ def safe_action_av(
             # s_oa = veh.to_dict()
             s_oa = veh.state_hist[-1]
             sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
-            print(
-                "========================Adjacent Vehicle: {}=======================".format(
-                    veh.id
-                )
-            )
+            # print(
+            #     "========================Adjacent Vehicle: {}=======================".format(
+            #         veh.id
+            #     )
+            # )
         # Leading vehicle in the same target lane
         if veh.lane_index == vehicle.lane_index and s_ol is None:
-            print(
-                "========================Leading Vehicle: {}=======================".format(
-                    veh.id
-                )
-            )
+            # print(
+            #     "========================Leading Vehicle: {}=======================".format(
+            #         veh.id
+            #     )
+            # )
             # This vehicle would have already changed state therefore, use old state
             # s_ol = veh.to_dict()
             s_ol = veh.state_hist[-1]
@@ -188,19 +188,19 @@ def safe_action_av(
     # Check for obstacles ahead in the lane
     for other in road.objects:
         if (s_ol is None) and abs(other.position[1] - vehicle.position[1]) <= 2:
-            print(
-                "========================Leading Obstacle: at {}=======================".format(
-                    other.position[0]
-                )
-            )
+            # print(
+            #     "========================Leading Obstacle: at {}=======================".format(
+            #         other.position[0]
+            #     )
+            # )
             s_ol = other.to_dict()
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
         if (s_oa is None) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
-            print(
-                "========================Adjacent Obstacle: at {}=======================".format(
-                    other.position[0]
-                )
-            )
+            # print(
+            #     "========================Adjacent Obstacle: at {}=======================".format(
+            #         other.position[0]
+            #     )
+            # )
             s_oa = other.to_dict()
             sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
 
@@ -294,12 +294,12 @@ def safe_action_av(
             - v_oar**2 / (2 * cbf.ACCELERATION_RANGE[0])
         )
         cbf.safe_dists = [sd_l, sd_a, sd_ar]
-        print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        # print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
     elif safe_dist == "theadway":
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
         cbf.safe_dists = [s_e["vx"] * cbf.TAU, s_e["vx"] * cbf.TAU, v_oar * cbf.TAU]
-        print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        # print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
 
@@ -323,11 +323,11 @@ def safe_action_av(
 
     # Avoid lane change if adjacent vehicle is close
     if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe):
-        print("Avoiding lane change")
+        # print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
 
-    print("u_safe: ", u_safe)
+    # print("u_safe: ", u_safe)
 
     u_safe[0] = (u_safe[0] - vehicle.speed) / dt
 

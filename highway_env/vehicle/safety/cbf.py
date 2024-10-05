@@ -361,7 +361,7 @@ class CBF_AV(CBFType):
         # G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
         G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
-        print("G: ", G)
+        # print("G: ", G)
 
         # assert (G.shape, (3, self.action_size))
         return G
@@ -383,7 +383,7 @@ class CBF_AV(CBFType):
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
-        print("h: ", h)
+        # print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
 
@@ -395,7 +395,7 @@ class CBF_AV(CBFType):
         hls_lonr = self.hs(p=self.p_lonr, q=self.q_lonr, x=x)
         hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lonr, f=f, g=g, u=u)
 
-        print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
+        # print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
 
         # if either lateral or longitudinal condition is satisified for both vehicle in front and read, lc is allowed
         return ((hls_lona >= 0) and (hlds_lona + (eta - 1) * hls_lona) >= 0) and (
@@ -414,10 +414,10 @@ class CBF_AV(CBFType):
         self.is_safe = hls_lon >= -1e-6
         self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= -1e-6
 
-        print("is safe: ", self.is_safe)
-        print("is invariant: ", self.is_invariant)
-        print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
-        print("eta: ", eta)
+        # print("is safe: ", self.is_safe)
+        # print("is invariant: ", self.is_invariant)
+        # print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
+        # print("eta: ", eta)
 
 
 class CBF_AV_Lateral(CBFType):
