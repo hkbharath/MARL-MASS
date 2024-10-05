@@ -255,7 +255,7 @@ class CBF_AV_Longitudinal(CBFType):
 class CBF_AV(CBFType):
     """Single agent CBF for individual AVs defined in Wang 2020. The lateral and longitudinal safe distance constrains are implemented in this class"""
 
-    GAMMA_B = 1.025
+    # GAMMA_B = 1.025
     # GAMMA_LAT = 1.625
 
     STATE_SPACE = ["x", "heading"]

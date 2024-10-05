@@ -9,6 +9,7 @@ import configparser
 import os
 from datetime import datetime
 from highway_env.envs.merge_env_v1 import MergeEnvMARL
+from highway_env.vehicle.safety.cbf import CBFType
 
 DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965"#,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
 
@@ -80,6 +81,9 @@ def train(args):
     EVAL_EPISODES = config.getint('TRAIN_CONFIG', 'EVAL_EPISODES')
     reward_scale = config.getfloat('TRAIN_CONFIG', 'reward_scale')
 
+    # CBF conf
+    CBFType.GAMMA_B = config.getfloat('ENV_CONFIG', 'cbf_eta', fallback=0.0)
+    CBFType.TAU = config.getfloat('ENV_CONFIG', 'HEADWAY_TIME', fallback=1.2)
     # init env
     env_id = config.get('ENV_CONFIG', 'env_name', fallback='merge-multi-agent-v0')
     env:MergeEnvMARL = gym.make(env_id)
