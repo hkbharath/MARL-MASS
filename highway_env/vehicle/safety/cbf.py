@@ -103,9 +103,9 @@ class CBFType:
         u_ll = np.squeeze(u_ll)
         # Set up Quadratic Program to satisfy CBF
 
-        print("f: ", f)
-        print("g: ", g)
-        print("x: ", x)
+        # print("f: ", f)
+        # print("g: ", g)
+        # print("x: ", x)
 
         self.define_pq(x=x)
 
@@ -121,7 +121,7 @@ class CBFType:
             A = matrix(A, tc="d")
             b = matrix(b, tc="d")
 
-        solvers.options["show_progress"] = True
+        solvers.options["show_progress"] = False
         sol = solvers.qp(self.P, self.q, G, h, A, b)
         u_bar = sol["x"]
 
@@ -143,7 +143,7 @@ class CBFType:
 
         #     is_opt = sol["status"] != "unknown"
 
-        print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
+        # print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
         self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_safe)
 
         return np.array(u_safe)
