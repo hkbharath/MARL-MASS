@@ -124,11 +124,16 @@ class MergeEnv(AbstractEnv):
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
         agent_info = []
+        min_headway = 1e5
+
         obs, reward, done, info = super().step(action)
         info["agents_dones"] = tuple(self._agent_is_terminal(vehicle) for vehicle in self.controlled_vehicles)
         for v in self.controlled_vehicles:
             agent_info.append([v.position[0], v.position[1], v.speed])
+            if hasattr(v, "min_headway"):
+                min_headway = min(min_headway, v.min_headway)
         info["agents_info"] = agent_info
+        info["min_headway"] = min_headway
 
         for vehicle in self.controlled_vehicles:
             vehicle.local_reward = self._agent_reward(action, vehicle)

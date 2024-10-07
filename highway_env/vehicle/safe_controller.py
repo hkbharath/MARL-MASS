@@ -49,6 +49,8 @@ class MDPLCVehicle(MDPVehicle):
         # Addition state parameter store current steering state
         self.steering_angle = 0
 
+        self.min_headway = 1e5
+
         self.fg_params = None
 
     def act(self, action: Union[dict, str] = None) -> None:
@@ -226,3 +228,6 @@ class MDPLCVehicle(MDPVehicle):
         }
 
         return ACTIONS_ALL[a_str]
+    
+    def set_min_headway(self, headway:float):
+        self.min_headway = headway

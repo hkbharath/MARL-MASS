@@ -295,11 +295,16 @@ def safe_action_av(
         )
         cbf.safe_dists = [sd_l, sd_a, sd_ar]
         # print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        # Headway distance in [m] 
+        vehicle.set_min_headway(sf_ol["x"] - sf_e["x"])
+
     elif safe_dist == "theadway":
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
         cbf.safe_dists = [s_e["vx"] * cbf.TAU, s_e["vx"] * cbf.TAU, v_oar * cbf.TAU]
         # print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        # Time headway in [s]
+        vehicle.set_min_headway((sf_ol["x"] - s_e["x"])/s_e["vx"])
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
 
@@ -318,7 +323,7 @@ def safe_action_av(
     u_ll = np.array([ps_e["vx"], dpsi_ll])
     u_safe = cbf.control_barrier(u_ll, f, g, x, dt)
 
-    # Later control is not constrained yet.
+    # Lateral control is not constrained yet.
     u_safe[1] = action["steering"]
 
     # Avoid lane change if adjacent vehicle is close

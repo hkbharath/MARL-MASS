@@ -262,7 +262,7 @@ def log_profiles(
 
 
 def get_config_file(base_directory):
-    pattern = "*configs_*.ini"
+    pattern = "*.ini"
 
     for root, _, filenames in os.walk(base_directory):
         for filename in fnmatch.filter(filenames, pattern):

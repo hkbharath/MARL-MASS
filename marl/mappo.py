@@ -252,6 +252,7 @@ class MAPPO:
         video_recorder = None
         crash_count = []
         step_time = []
+        min_headway = float('inf')
         seeds = [int(s) for s in self.test_seeds.split(',')]
         video_filename = None
 
@@ -297,6 +298,7 @@ class MAPPO:
                 s_time = time.process_time() - s_start
 
                 avg_speed += info["average_speed"]
+                min_headway = min(min_headway, info["min_headway"])
                 
                 if video_recorder is not None:
                     rendered_frame = env.render(mode="rgb_array")
@@ -325,7 +327,8 @@ class MAPPO:
         ext_info = {"steps":steps,
                     "avg_speeds": avg_speeds,
                     "crash_count": crash_count,
-                    "step_time": step_time,}
+                    "step_time": step_time,
+                    "min_headway": min_headway}
         return rewards, (vehicle_speed, vehicle_position), ext_info
 
     # discount roll out rewards

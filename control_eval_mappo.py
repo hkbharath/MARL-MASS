@@ -14,6 +14,7 @@ import argparse
 import configparser
 import os
 from highway_env.envs.merge_env_v1 import MergeEnvLCMARL
+from highway_env.vehicle.safety.cbf import CBFType
 
 
 def parse_args():
@@ -123,6 +124,10 @@ def evaluate(args):
     critic_lr = config.getfloat("TRAIN_CONFIG", "critic_lr")
     EPISODES_BEFORE_TRAIN = config.getint("TRAIN_CONFIG", "EPISODES_BEFORE_TRAIN")
     reward_scale = config.getfloat("TRAIN_CONFIG", "reward_scale")
+
+    # CBF conf
+    CBFType.GAMMA_B = config.getfloat('ENV_CONFIG', 'cbf_eta', fallback=0.0)
+    CBFType.TAU = config.getfloat('ENV_CONFIG', 'HEADWAY_TIME', fallback=1.2)
 
     # init env
     env_id = config.get("ENV_CONFIG", "env_name", fallback="merge-multi-agent-v0")
