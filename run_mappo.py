@@ -173,7 +173,8 @@ def train(args):
                 wandb.log({"reward": rewards_mu,
                            "average_speed": avg_speed_mu,
                            "crash_count": crash_count,
-                           "time_per_step": step_time_mu})
+                           "time_per_step": step_time_mu,
+                           "min_headway": ext_info["min_headway"]})
                 
             # save the model
             mappo.save(dirs['models'], mappo.n_episodes + 1)
@@ -299,7 +300,8 @@ def evaluate(args):
         wandb.log({"reward": rewards_mu,
                     "average_speed": avg_speed_mu,
                     "crash_count": crash_count,
-                    "time_per_step": step_time_mu})
+                    "time_per_step": step_time_mu,
+                    "min_headway": ext_info["min_headway"]})
         wandb.finish()
 
 
