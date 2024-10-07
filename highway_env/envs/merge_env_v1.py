@@ -391,7 +391,32 @@ class MergeEnvLCMARL(MergeEnv):
                                     speed=speed)
         hdv_v.id = veh_id
         return hdv_v
+
+class MergeEnvMARLSteerVel(MergeEnvLCMARL):
+    n_a = 5
+    n_s = 25
     
+    @classmethod
+    def default_config(cls) -> dict:
+        config = super().default_config()
+        config.update({
+            "action": {
+                "type": "MultiAgentAction",
+                "action_config": {
+                    "type": "DiscreteMetaActionLC",
+                    "lateral": True,
+                    "longitudinal": True
+                }},
+            "observation": {
+                "type": "MultiAgentObservation",
+                "observation_config": {
+                    "type": "Kinematics"
+                }},
+            "controlled_vehicles": 4,
+            "lateral_control": "steer"
+        })
+        return config
+
 register(
     id='merge-v1',
     entry_point='highway_env.envs:MergeEnv',
@@ -405,4 +430,9 @@ register(
 register(
     id='merge-multi-agent-v1',
     entry_point='highway_env.envs:MergeEnvLCMARL',
+)
+
+register(
+    id='merge-multi-agent-v05',
+    entry_point='highway_env.envs:MergeEnvMARLSteerVel',
 )
