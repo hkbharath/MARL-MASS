@@ -135,6 +135,8 @@ def safe_action_av(
     for k in cbf.STATE_SPACE:
         if k == "x":
             sf_ol[k] = s_e[k] + perception_dist + 1
+        elif k=="y":
+            sf_ol[k] = s_e[k]
         else:
             sf_ol[k] = 0.0
 
@@ -144,9 +146,9 @@ def safe_action_av(
             sf_oa[k] = s_e[k] + perception_dist + 1
         elif k == "y":
             if vehicle.lane_index[2] == 1:
-                sf_oa[k] = s_e[k] - 2 * vehicle.lane.DEFAULT_WIDTH
+                sf_oa[k] = s_e[k] - vehicle.lane.DEFAULT_WIDTH
             elif vehicle.lane_index[2] == 0:
-                sf_oa[k] = s_e[k] + 2 * vehicle.lane.DEFAULT_WIDTH
+                sf_oa[k] = s_e[k] + vehicle.lane.DEFAULT_WIDTH
         else:
             sf_oa[k] = 0.0
     # Leading vehicles are ordered by increasing distance from the ego vehicle
@@ -198,10 +200,10 @@ def safe_action_av(
 
     # Check for obstacles ahead in the lane
     for other in road.objects:
-        if (s_ol is None or other.position[0] <= s_ol["x"]) and abs(other.position[1] - vehicle.position[1]) <= 2:
+        if (s_ol is None or other.position[0] <= s_ol["x"]) and (abs(other.position[1] - vehicle.position[1]) <= 2):
             # print(
             #     "========================Leading Obstacle: at {}=======================".format(
-            #         other.position[0]
+            #         other.position
             #     )
             # )
             s_ol = other.to_dict()
@@ -209,7 +211,7 @@ def safe_action_av(
         if (s_oa is None or other.position[0] <= s_oa["x"]) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
             # print(
             #     "========================Adjacent Obstacle: at {}=======================".format(
-            #         other.position[0]
+            #         other.position
             #     )
             # )
             s_oa = other.to_dict()

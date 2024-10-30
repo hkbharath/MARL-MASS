@@ -210,6 +210,7 @@ def init_logging(
         project_name = "Untracked-default"
 
     config["run_id"] = uid
+    config["cmd_args"] = vars(args)
     wandb_run = init_wandb(config=config, project_name=project_name, exp_name=exp_name)
 
     return wandb_run
