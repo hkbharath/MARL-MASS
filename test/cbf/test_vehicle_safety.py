@@ -25,7 +25,7 @@ def parse_args():
         type=str,
         required=False,
         default="none",
-        choices=["none", "cbf-avlon", "cbf-av", "cbf-cav"],
+        choices=["none", "cbf-avlon", "cbf-av", "cbf-avs", "cbf-cav"],
         help="Type of CBF constraint being applied",
     )
     parser.add_argument(

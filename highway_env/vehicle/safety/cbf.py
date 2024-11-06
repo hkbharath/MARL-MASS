@@ -20,7 +20,7 @@ class CBFType:
     KD = 1
     """Used for robust constraints"""
 
-    TAU = 1.2
+    TAU = 0.5
     """Safe time headway"""
 
     def __init__(
@@ -86,6 +86,7 @@ class CBFType:
             raise ValueError(
                 "Error in QP. Invalid accceleration: {0}".format(u_safe[0])
             )
+        return
 
     def check_dims(self, G: np.ndarray, h: np.ndarray):
         """Check dimensions of G and h matricies
@@ -103,9 +104,9 @@ class CBFType:
         u_ll = np.squeeze(u_ll)
         # Set up Quadratic Program to satisfy CBF
 
-        # print("f: ", f)
-        # print("g: ", g)
-        # print("x: ", x)
+        print("f: ", f)
+        print("g: ", g)
+        print("x: ", x)
 
         self.define_pq(x=x)
 
@@ -143,7 +144,7 @@ class CBFType:
 
         #     is_opt = sol["status"] != "unknown"
 
-        # print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
+        print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
         self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_safe)
 
         return np.array(u_safe)
@@ -330,7 +331,7 @@ class CBF_AV(CBFType):
         self.p_lona = self.dx_a
         self.p_lonr = self.dx_r
 
-        # print("p_lon: ", self.p_lon)
+        print("p_lon: ", self.p_lon)
         # print("p_lona: ", self.p_lona)
         # print("p_lonr: ", self.p_lonr)
 
@@ -339,7 +340,7 @@ class CBF_AV(CBFType):
         self.q_lona = -self.vehicle_size[0] - self.safe_dists[1]
         self.q_lonr = -self.vehicle_size[0] - self.safe_dists[2]
 
-        # print("q_lon: ", self.q_lon)
+        print("q_lon: ", self.q_lon)
         # print("q_lona: ", self.q_lona)
         # print("q_lonr: ", self.q_lonr)
 
@@ -361,7 +362,7 @@ class CBF_AV(CBFType):
         # G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
         G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
-        # print("G: ", G)
+        print("G: ", G)
 
         # assert (G.shape, (3, self.action_size))
         return G
@@ -383,7 +384,7 @@ class CBF_AV(CBFType):
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
-        # print("h: ", h)
+        print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
 
@@ -414,11 +415,38 @@ class CBF_AV(CBFType):
         self.is_safe = hls_lon >= -1e-6
         self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= -1e-6
 
-        # print("is safe: ", self.is_safe)
-        # print("is invariant: ", self.is_invariant)
-        # print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
-        # print("eta: ", eta)
+        print("is safe: ", self.is_safe)
+        print("is invariant: ", self.is_invariant)
+        print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
+        print("eta: ", eta)
 
+class CBF_AVS(CBF_AV):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def hds(self, p, q, f, g, u):
+        return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u) + q
+    
+    def get_h(self, f, g, x, u_ll, eta=None):
+        if eta is None:
+            eta = self.GAMMA_B
+        h = np.array(
+            [
+                np.dot(self.p_lon, f)
+                + (eta - 1) * np.dot(self.p_lon, x)
+                + eta * self.q_lon
+                + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
+                # np.dot(self.p_lat, f)
+                # + (eta - 1) * np.dot(self.p_lat, x)
+                # + eta * self.q_lat
+                # + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
+                self.action_bound[0][1] - u_ll[0],
+                -self.action_bound[0][0] + u_ll[0],
+            ]
+        )
+        print("h: ", h)
+        # assert (h.shape, (3, 1))
+        return h
 
 class CBF_AV_Lateral(CBFType):
     # TODO: Define this class to consider lateral safe space.
@@ -602,7 +630,9 @@ def cbf_factory(cbf_type: str, **kwargs) -> CBFType:
         return CBF_AV_Longitudinal(**kwargs)
     elif cbf_type == "av":
         return CBF_AV(**kwargs)
-    if cbf_type == "cav":
+    elif cbf_type == "avs":
+        return(CBF_AVS(**kwargs))
+    elif cbf_type == "cav":
         return CBF_CAV(**kwargs)
     else:
         raise ValueError("Undefined cbf_type:{0}".format(cbf_type))
