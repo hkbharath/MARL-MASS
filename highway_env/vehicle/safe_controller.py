@@ -112,11 +112,10 @@ class MDPLCVehicle(MDPVehicle):
         :param dt: timestep of integration of the model [s]
         """
 
-        safe_action, safe_diff = None, None
-
+        self.clip_actions()
+        safe_action, safe_diff, safe_status = self.get_safe_action(dt)
+        
         if self.lateral_ctrl == "steer_vel":
-            self.clip_actions()
-            safe_action, safe_diff, safe_status = self.get_safe_action(dt)
 
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
             v = self.speed * np.array(
@@ -142,10 +141,31 @@ class MDPLCVehicle(MDPVehicle):
                     "vy": np.sin(self.heading + beta),
                 },
             }
+        elif self.lateral_ctrl == "steer":
+            delta_f = safe_action['steering']
+            beta = np.arctan(1 / 2 * np.tan(delta_f))
+            v = self.speed * np.array([np.cos(self.heading + beta),
+                                    np.sin(self.heading + beta)])
+            self.position += v * dt
+            self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2) * dt
+            self.speed += safe_action['acceleration'] * dt
 
-            self.on_state_update()
+            self.fg_params = {
+                "f": {
+                    "x": self.velocity[0],
+                    "y": self.velocity[1],
+                    "beta": beta,
+                },
+                "g": {
+                    "vx": np.cos(self.heading + beta),
+                    "vy": np.sin(self.heading + beta),
+                },
+            }
         else:
-            super().step(dt)
+            raise AttributeError(
+                "Lateral control: {0} is not supported".format(self.lateral_ctrl)
+            )
+        self.on_state_update()
 
         self.t_step += dt
         a_info = {
@@ -201,7 +221,7 @@ class MDPLCVehicle(MDPVehicle):
     ) -> Tuple[Dict, Union[Dict, None], Union[Dict, None]]:
         if (
             self.safety_layer in ["none", "priority"]
-            or self.lateral_ctrl != "steer_vel"
+            or self.lateral_ctrl not in ["steer_vel", "steer"]
             or "cbf-" not in self.safety_layer
             or self.fg_params is None
         ):
@@ -215,7 +235,7 @@ class MDPLCVehicle(MDPVehicle):
             dt=dt,
             perception_dist=self.PERCEPTION_DIST,
             action=self.action,
-            safe_dist=self.SAFE_DIST
+            safe_dist=self.SAFE_DIST,
         )
 
     def get_hl_action_map(self, a_str: str) -> int:

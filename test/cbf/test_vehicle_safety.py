@@ -78,6 +78,14 @@ def parse_args():
         action="store_true",
         help="Add obstacle at 225m in the test simulation",
     )
+    parser.add_argument(
+        "--lateral",
+        type=str,
+        required=False,
+        default="steer_vel",
+        choices=["steer_vel", "steer"],
+        help="Type of safe distance used in CBF constraints",
+    )
 
     return parser.parse_args()
 
@@ -99,6 +107,8 @@ def setup_logging(
         exp_name = exp_name + "-" + args.speeds
     if args.ix is not None:
         exp_name = exp_name + "-" + args.ix
+    if args.lateral is not None:
+        exp_name = exp_name + "-" + args.lateral
 
     if args.extreme:
         exp_name = exp_name + "-extr"
@@ -140,6 +150,7 @@ def main():
     env: CBFTestEnv = gym.make(env_id)
     env.config["safety_guarantee"] = args.safety
     env.config["obstacle"] = args.obstacle
+    env.config["lateral_control"] = args.lateral
 
     wandb_run = None
     if not args.debug:

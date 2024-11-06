@@ -771,7 +771,7 @@ def safety_layer(
             vehicle_lane=vehicle.lane_index[2],
         )
         return safe_action_longitudinal(
-            cbf=cbf, action=action, vehicle=vehicle, dt=dt**kwargs
+            cbf=cbf, action=action, vehicle=vehicle, dt=dt, **kwargs
         )
     elif safety_type == "av":
         v_min = vehicle.speed + vehicle.MIN_ACC * dt
