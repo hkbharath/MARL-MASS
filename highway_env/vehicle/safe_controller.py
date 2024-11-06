@@ -49,7 +49,7 @@ class MDPLCVehicle(MDPVehicle):
         # Addition state parameter store current steering state
         self.steering_angle = 0
 
-        self.min_headway = 1e5
+        self.min_headway = self.PERCEPTION_DIST/self.MAX_SPEED # 6
 
         self.fg_params = None
 
@@ -172,6 +172,7 @@ class MDPLCVehicle(MDPVehicle):
             state_rec["safe_status"] = additional_info["safe_status"]
 
         state_rec["t_step"] = self.t_step
+        state_rec["headway"] = self.min_headway
         self.state_hist.append(state_rec)
 
         safe_action = None
