@@ -7,6 +7,7 @@ import numpy as np
 
 from highway_env.types import Vector, Interval
 
+CBF_DEBUG = False
 
 def do_every(duration: float, timer: float) -> bool:
     return duration < timer

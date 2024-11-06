@@ -207,6 +207,7 @@ class MDPLCVehicle(MDPVehicle):
         if safe_action is not None:
             action_rec = safe_action
         action_rec["ull_acceleration"] = self.action["acceleration"]
+        action_rec["ull_steering"] = self.action["steering"]
 
         # Fix this step to log high level behaviour
         action_rec["lc_action"] = self.get_hl_action_map(self.hl_action)

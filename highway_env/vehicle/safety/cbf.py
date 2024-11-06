@@ -2,7 +2,7 @@ import numpy as np
 from cvxopt import matrix
 from cvxopt import solvers
 from typing import List, Any, Tuple, Union, Dict
-
+from highway_env.utils import CBF_DEBUG
 
 class CBFType:
 
@@ -104,9 +104,10 @@ class CBFType:
         u_ll = np.squeeze(u_ll)
         # Set up Quadratic Program to satisfy CBF
 
-        print("f: ", f)
-        print("g: ", g)
-        print("x: ", x)
+        if CBF_DEBUG:
+            print("f: ", f)
+            print("g: ", g)
+            print("x: ", x)
 
         self.define_pq(x=x)
 
@@ -144,7 +145,8 @@ class CBFType:
 
         #     is_opt = sol["status"] != "unknown"
 
-        print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
+        if CBF_DEBUG:
+            print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
         self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_safe)
 
         return np.array(u_safe)
@@ -215,7 +217,8 @@ class CBF_AV_Longitudinal(CBFType):
         # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
         G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
-        print("G: ", G)
+        if CBF_DEBUG:
+            print("G: ", G)
 
         # assert (G.shape, (3, self.action_size))
         return G
@@ -232,7 +235,8 @@ class CBF_AV_Longitudinal(CBFType):
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
-        print("h: ", h)
+        if CBF_DEBUG:
+            print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
 
@@ -247,10 +251,11 @@ class CBF_AV_Longitudinal(CBFType):
         self.is_safe = hls >= 0
         self.is_invariant = (hlds + (self.GAMMA_B - 1) * hls) >= 0
 
-        print("is safe: ", self.is_safe)
-        print("is invariant: ", self.is_invariant)
-        print("h_lon(s), h_lon(s'): ", hls, hlds)
-        print("eta: ", self.GAMMA_B)
+        if CBF_DEBUG:
+            print("is safe: ", self.is_safe)
+            print("is invariant: ", self.is_invariant)
+            print("h_lon(s), h_lon(s'): ", hls, hlds)
+            print("eta: ", self.GAMMA_B)
 
 
 class CBF_AV(CBFType):
@@ -331,18 +336,20 @@ class CBF_AV(CBFType):
         self.p_lona = self.dx_a
         self.p_lonr = self.dx_r
 
-        print("p_lon: ", self.p_lon)
-        # print("p_lona: ", self.p_lona)
-        # print("p_lonr: ", self.p_lonr)
+        if CBF_DEBUG:
+            print("p_lon: ", self.p_lon)
+            print("p_lona: ", self.p_lona)
+            print("p_lonr: ", self.p_lonr)
 
         # reduce one vehicle length, as position correspond to centre of the car
         self.q_lon = -self.vehicle_size[0] - self.safe_dists[0]
         self.q_lona = -self.vehicle_size[0] - self.safe_dists[1]
         self.q_lonr = -self.vehicle_size[0] - self.safe_dists[2]
 
-        print("q_lon: ", self.q_lon)
-        # print("q_lona: ", self.q_lona)
-        # print("q_lonr: ", self.q_lonr)
+        if CBF_DEBUG:
+            print("q_lon: ", self.q_lon)
+            print("q_lona: ", self.q_lona)
+            print("q_lonr: ", self.q_lonr)
 
     def hds(self, p, q, f, g, u):
         return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u)
@@ -362,7 +369,8 @@ class CBF_AV(CBFType):
         # G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
         G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
-        print("G: ", G)
+        if CBF_DEBUG:
+            print("G: ", G)
 
         # assert (G.shape, (3, self.action_size))
         return G
@@ -384,7 +392,8 @@ class CBF_AV(CBFType):
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
-        print("h: ", h)
+        if CBF_DEBUG:
+            print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
 
@@ -396,7 +405,8 @@ class CBF_AV(CBFType):
         hls_lonr = self.hs(p=self.p_lonr, q=self.q_lonr, x=x)
         hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lonr, f=f, g=g, u=u)
 
-        # print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
+        if CBF_DEBUG:
+            print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
 
         # if either lateral or longitudinal condition is satisified for both vehicle in front and read, lc is allowed
         return ((hls_lona >= 0) and (hlds_lona + (eta - 1) * hls_lona) >= 0) and (
@@ -415,10 +425,11 @@ class CBF_AV(CBFType):
         self.is_safe = hls_lon >= -1e-6
         self.is_invariant = (hlds_lon + (eta - 1) * hls_lon) >= -1e-6
 
-        print("is safe: ", self.is_safe)
-        print("is invariant: ", self.is_invariant)
-        print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
-        print("eta: ", eta)
+        if CBF_DEBUG:
+            print("is safe: ", self.is_safe)
+            print("is invariant: ", self.is_invariant)
+            print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
+            print("eta: ", eta)
 
 class CBF_AVS(CBF_AV):
     def __init__(self, **kwargs):
@@ -444,7 +455,8 @@ class CBF_AVS(CBF_AV):
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
-        print("h: ", h)
+        if CBF_DEBUG:
+            print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
 

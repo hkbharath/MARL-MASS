@@ -3,6 +3,7 @@ import numpy as np
 from typing import TYPE_CHECKING, List, Union
 
 from highway_env.vehicle.safety.cbf import CBFType, cbf_factory
+from highway_env.utils import CBF_DEBUG
 
 if TYPE_CHECKING:
     from highway_env.road.road import Road
@@ -366,9 +367,10 @@ def safe_action_av_state(
     perception_dist,
 ):
 
-    print(
-        "========================Vehicle:{}=======================".format(vehicle.id)
-    )
+    if CBF_DEBUG:
+        print(
+            "========================Vehicle:{}=======================".format(vehicle.id)
+        )
     perception_dist = 6 * vehicle.SPEED_MAX
 
     s_e = vehicle.to_dict()
@@ -409,11 +411,12 @@ def safe_action_av_state(
         # rear vehicle in the adjacent lane
         if vehicle.lane_distance_to(veh) < 0:
             if s_oar is None and is_adj_lane(road, veh, vehicle.lane_index):
-                # print(
-                #     "=====================Rear adjacent Vehicle: {}=====================".format(
-                #         veh.id
-                #     )
-                # )
+                if CBF_DEBUG:
+                    print(
+                        "=====================Rear adjacent Vehicle: {}=====================".format(
+                            veh.id
+                        )
+                    )
                 s_oar = veh.to_dict()
                 sf_oar = {k: s_oar[k] if k in s_oar else 0 for k in cbf.STATE_SPACE}
             continue
@@ -425,18 +428,20 @@ def safe_action_av_state(
             # s_oa = veh.to_dict()
             s_oa = veh.state_hist[-1]
             sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
-            # print(
-            #     "========================Adjacent Vehicle: {}=======================".format(
-            #         veh.id
-            #     )
-            # )
+            if CBF_DEBUG:
+                print(
+                    "========================Adjacent Vehicle: {}=======================".format(
+                        veh.id
+                    )
+                )
         # Leading vehicle in the same target lane
         if s_ol is None and is_same_lane(road, vehicle, veh.lane_index):
-            print(
-                "========================Leading Vehicle: {}=======================".format(
-                    veh.id
+            if CBF_DEBUG:
+                print(
+                    "========================Leading Vehicle: {}=======================".format(
+                        veh.id
+                    )
                 )
-            )
             # This vehicle would have already changed state therefore, use old state
             # s_ol = veh.to_dict()
             s_ol = veh.state_hist[-1]
@@ -445,19 +450,21 @@ def safe_action_av_state(
     # Check for obstacles ahead in the lane
     for other in road.objects:
         if (s_ol is None or other.position[0] <= s_ol["x"]) and (abs(other.position[1] - vehicle.position[1]) <= 2):
-            # print(
-            #     "========================Leading Obstacle: at {}=======================".format(
-            #         other.position
-            #     )
-            # )
+            if CBF_DEBUG:
+                print(
+                    "========================Leading Obstacle: at {}=======================".format(
+                        other.position
+                    )
+                )
             s_ol = other.to_dict()
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
         if (s_oa is None or other.position[0] <= s_oa["x"]) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
-            # print(
-            #     "========================Adjacent Obstacle: at {}=======================".format(
-            #         other.position
-            #     )
-            # )
+            if CBF_DEBUG:    
+                print(
+                    "========================Adjacent Obstacle: at {}=======================".format(
+                        other.position
+                    )
+                )
             s_oa = other.to_dict()
             sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
 
@@ -586,11 +593,13 @@ def safe_action_av_state(
 
     # Avoid lane change if adjacent vehicle is close
     if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe):
-        # print("Avoiding lane change")
+        if CBF_DEBUG:
+            print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
 
-    # print("u_safe: ", u_safe)
+    if CBF_DEBUG:
+        print("u_safe: ", u_safe)
 
     u_safe[0] = (u_safe[0] - vehicle.speed) / dt
 
