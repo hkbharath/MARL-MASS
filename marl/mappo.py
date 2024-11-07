@@ -329,6 +329,12 @@ class MAPPO:
                     "crash_count": crash_count,
                     "step_time": step_time,
                     "min_headway": min_headway}
+        # Debug safety violation
+        if min_headway < env.config["HEADWAY_TIME"]:
+            print(
+                "Minimum headway violation in seed {2}: found {0}, but expected >{1}"
+                  .format(min_headway, env.config["HEADWAY_TIME"], seeds[i])
+            )
         return rewards, (vehicle_speed, vehicle_position), ext_info
 
     # discount roll out rewards

@@ -24,6 +24,7 @@ class CBFTestEnv(AbstractEnv):
 
     n_a = 5
     VEHICLE_SPEEDS = [25, 20]
+    INIT_POS = [25, 65]
     USE_RANDOM = True
     DEBUG_CBF = False
 
@@ -115,7 +116,7 @@ class CBFTestEnv(AbstractEnv):
         road = self.road
         self.controlled_vehicles = []
 
-        init_pos = road.network.get_lane(("a", "b", init_lane)).position(25, 0)
+        init_pos = road.network.get_lane(("a", "b", init_lane)).position(self.INIT_POS[0], 0)
         init_speed = self.VEHICLE_SPEEDS[0]
         if self.USE_RANDOM:
             init_speed = init_speed + np.random.rand() * 2
@@ -136,7 +137,7 @@ class CBFTestEnv(AbstractEnv):
         road.vehicles.append(ego_vehicle)
 
         other_vehicles_type = class_from_path(self.config["other_vehicles_type"])
-        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(65, 0)
+        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(self.INIT_POS[1], 0)
         init_speed_o = self.VEHICLE_SPEEDS[1]
         if self.USE_RANDOM:
             init_speed_o = init_speed_o + np.random.rand() * 2

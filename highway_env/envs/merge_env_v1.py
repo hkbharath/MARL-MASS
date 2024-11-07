@@ -149,12 +149,14 @@ class MergeEnv(AbstractEnv):
     def _is_terminal(self) -> bool:
         """The episode is over when a collision occurs or when the access ramp has been passed."""
         return any(vehicle.crashed for vehicle in self.controlled_vehicles) \
-               or self.steps >= self.config["duration"] * self.config["policy_frequency"]
+               or self.steps >= self.config["duration"] * self.config["policy_frequency"]\
+               or any (vehicle.position[0] < 0 for vehicle in self.controlled_vehicles)
 
     def _agent_is_terminal(self, vehicle: Vehicle) -> bool:
         """The episode is over when a collision occurs or when the access ramp has been passed."""
         return vehicle.crashed \
-               or self.steps >= self.config["duration"] * self.config["policy_frequency"]
+               or self.steps >= self.config["duration"] * self.config["policy_frequency"] \
+               or vehicle.position[0] < 0
 
     def _reset(self, num_CAV=0) -> None:
         self._make_road()

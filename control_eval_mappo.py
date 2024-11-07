@@ -149,8 +149,6 @@ def evaluate(args):
     traffic_density = config.getint("ENV_CONFIG", "traffic_density")
     env.config["action_masking"] = config.getboolean("MODEL_CONFIG", "action_masking")
     env.config["safety_guarantee"] = config.get("ENV_CONFIG", "safety_guarantee")
-    # TEST Safety layer
-    env.config["safety_guarantee"] = "cbf-av"
     env.config["lateral_control"] = config.get(
         "ENV_CONFIG", "lateral_control", fallback="steer"
     )

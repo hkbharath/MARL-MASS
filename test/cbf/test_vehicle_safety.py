@@ -132,6 +132,10 @@ def main():
         if args.extreme:
             CBFTestEnv.VEHICLE_SPEEDS = [30, 15]
             CBFTestEnv.USE_RANDOM = False
+        if args.speeds is not None:
+            CBFTestEnv.VEHICLE_SPEEDS = [int(v) for v in args.speeds.split(",")]
+        if args.ix is not None:
+            CBFTestEnv.INIT_POS = [int(v) for v in args.ix.split(",")]
     elif args.test_type in (
         "lat_adj_left_lc",
         "lat_adj_right_lc",
