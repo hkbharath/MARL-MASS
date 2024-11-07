@@ -73,6 +73,8 @@ class MAPPO:
         self.actor_target = deepcopy(self.actor)
         self.critic_target = deepcopy(self.critic)
 
+        self.train_min_headway = float('inf')
+
         if self.optimizer_type == "adam":
             self.actor_optimizer = Adam(self.actor.parameters(), lr=self.actor_lr)
             self.critic_optimizer = Adam(self.critic.parameters(), lr=self.critic_lr)
@@ -116,6 +118,8 @@ class MAPPO:
                 reward = [global_reward] * self.n_agents
             rewards.append(reward)
             average_speed += info["average_speed"]
+            self.train_min_headway = min(self.train_min_headway, info["min_headway"])
+
             final_state = next_state
             self.env_state = next_state
 
