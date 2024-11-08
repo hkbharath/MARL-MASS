@@ -441,7 +441,7 @@ def safe_action_av_state(
                 sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
         elif (
             s_ol is None
-            and is_same_lane(road, vehicle, veh.target_lane_index)
+            and is_same_lane(road, vehicle, veh.lane_index)
             and vehicle.lane_distance_to(veh) > 0
         ):
             if CBF_DEBUG:
