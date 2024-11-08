@@ -20,7 +20,7 @@ class MDPLCVehicle(MDPVehicle):
     MIN_ACC: float = -12.5
     PERCEPTION_DIST = 6 * MDPVehicle.SPEED_MAX
 
-    SAFE_DIST:str = "theadway"
+    SAFE_DIST: str = "theadway"
 
     def __init__(
         self,
@@ -49,7 +49,7 @@ class MDPLCVehicle(MDPVehicle):
         # Addition state parameter store current steering state
         self.steering_angle = 0
 
-        self.min_headway = self.PERCEPTION_DIST/self.MAX_SPEED # 6
+        self.min_headway = self.PERCEPTION_DIST / self.MAX_SPEED  # 6
 
         self.fg_params = None
 
@@ -114,7 +114,7 @@ class MDPLCVehicle(MDPVehicle):
 
         self.clip_actions()
         safe_action, safe_diff, safe_status = self.get_safe_action(dt)
-        
+
         if self.lateral_ctrl == "steer_vel":
 
             beta = np.arctan(1 / 2 * np.tan(self.steering_angle))
@@ -142,13 +142,14 @@ class MDPLCVehicle(MDPVehicle):
                 },
             }
         elif self.lateral_ctrl == "steer":
-            delta_f = safe_action['steering']
+            delta_f = safe_action["steering"]
             beta = np.arctan(1 / 2 * np.tan(delta_f))
-            v = self.speed * np.array([np.cos(self.heading + beta),
-                                    np.sin(self.heading + beta)])
+            v = self.speed * np.array(
+                [np.cos(self.heading + beta), np.sin(self.heading + beta)]
+            )
             self.position += v * dt
             self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2) * dt
-            self.speed += safe_action['acceleration'] * dt
+            self.speed += safe_action["acceleration"] * dt
 
             self.fg_params = {
                 "f": {
@@ -225,6 +226,7 @@ class MDPLCVehicle(MDPVehicle):
             or self.lateral_ctrl not in ["steer_vel", "steer"]
             or "cbf-" not in self.safety_layer
             or self.fg_params is None
+            or len(self.state_hist) < 2
         ):
             return self.action, None, None
 
@@ -250,12 +252,13 @@ class MDPLCVehicle(MDPVehicle):
         }
 
         return ACTIONS_ALL[a_str]
-    
-    def set_min_headway(self, headway:float, tau:float):
+
+    def set_min_headway(self, headway: float, tau: float):
         self.min_headway = headway
         if self.min_headway < tau:
             print(
-                "Minimum headway violation by vehicle {2}: observed {0}, but expected >{1}"
-                  .format(self.min_headway, tau, self.id)
+                "Minimum headway violation by vehicle {2}: observed {0}, but expected >{1}".format(
+                    self.min_headway, tau, self.id
+                )
             )
             print("Vehicle state:\n", self.to_dict())

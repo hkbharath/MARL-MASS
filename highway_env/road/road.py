@@ -271,7 +271,10 @@ class Road(object):
         # e.g., len(self.vehicles) = 7
         # if vehicle: IDMVehicle, it will go to the behavior.py
         # if vehicle: MDPVehicle, it will go to the behavior.py
-        for vehicle in self.vehicles:  # all the vehicles on the road
+        # for vehicle in self.vehicles:  # all the vehicles on the road
+        #     vehicle.act()
+        
+        for vehicle in sorted(self.vehicles, key=lambda v:v.position[0], reverse=True):
             vehicle.act()
 
     def step(self, dt: float) -> None:

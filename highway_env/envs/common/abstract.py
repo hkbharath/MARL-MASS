@@ -74,7 +74,7 @@ class AbstractEnv(gym.Env):
         self.rendering_mode = 'human'
         self.enable_auto_render = False
 
-        self.ends = [220, 100, 100, 100]  # Before, converging, merge, after
+        self.ends = [220, 100, 100, 1000]  # Before, converging, merge, after
         self.action_is_safe = True
         self.ACTIONS_ALL = {'LANE_LEFT': 0,
                             'IDLE': 1,

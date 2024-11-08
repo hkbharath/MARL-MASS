@@ -12,14 +12,16 @@ if TYPE_CHECKING:
     from highway_env.vehicle.behavior import IDMVehicleL
 
 
-def is_same_lane(road: "Road", vehicle:"ControlledVehicle", lane_index_2):
+def is_same_lane(road: "Road", vehicle: "ControlledVehicle", lane_index_2):
     lane_index_1 = vehicle.lane_index
-    return lane_index_1 == lane_index_2 or lane_index_2 == road.network.next_lane(
-        lane_index_1, position=vehicle.position
+    next_lane = road.network.next_lane(lane_index_1, position=vehicle.position)
+    # should not require a lane change in the next lane.
+    return lane_index_1 == lane_index_2 or (
+        lane_index_2 == next_lane and lane_index_1[-1] == next_lane[-1]
     )
 
 
-def is_adj_lane(road: "Road", vehicle:"ControlledVehicle", lane_index_2):
+def is_adj_lane(road: "Road", vehicle: "ControlledVehicle", lane_index_2):
     lane_index_1 = vehicle.lane_index
     next_lane = road.network.next_lane(lane_index_1, position=vehicle.position)
     return (
@@ -136,7 +138,7 @@ def safe_action_av(
     for k in cbf.STATE_SPACE:
         if k == "x":
             sf_ol[k] = s_e[k] + perception_dist + 1
-        elif k=="y":
+        elif k == "y":
             sf_ol[k] = s_e[k]
         else:
             sf_ol[k] = 0.0
@@ -201,7 +203,9 @@ def safe_action_av(
 
     # Check for obstacles ahead in the lane
     for other in road.objects:
-        if (s_ol is None or other.position[0] <= s_ol["x"]) and (abs(other.position[1] - vehicle.position[1]) <= 2):
+        if (s_ol is None or other.position[0] <= s_ol["x"]) and (
+            abs(other.position[1] - vehicle.position[1]) <= 2
+        ):
             # print(
             #     "========================Leading Obstacle: at {}=======================".format(
             #         other.position
@@ -209,7 +213,9 @@ def safe_action_av(
             # )
             s_ol = other.to_dict()
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
-        if (s_oa is None or other.position[0] <= s_oa["x"]) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
+        if (s_oa is None or other.position[0] <= s_oa["x"]) and (
+            2 < abs(other.position[1] - vehicle.position[1]) <= 4
+        ):
             # print(
             #     "========================Adjacent Obstacle: at {}=======================".format(
             #         other.position
@@ -357,6 +363,7 @@ def safe_action_av(
     }
     return safe_action, safe_diff, cbf.get_status()
 
+
 def safe_action_av_state(
     cbf: "CBFType",
     action,
@@ -369,7 +376,9 @@ def safe_action_av_state(
 
     if CBF_DEBUG:
         print(
-            "========================Vehicle:{}=======================".format(vehicle.id)
+            "========================Vehicle:{}=======================".format(
+                vehicle.id
+            )
         )
     perception_dist = 6 * vehicle.SPEED_MAX
 
@@ -381,7 +390,7 @@ def safe_action_av_state(
     for k in cbf.STATE_SPACE:
         if k == "x":
             sf_ol[k] = s_e[k] + perception_dist + 1
-        elif k=="y":
+        elif k == "y":
             sf_ol[k] = s_e[k]
         else:
             sf_ol[k] = 0.0
@@ -408,9 +417,9 @@ def safe_action_av_state(
     s_ol, s_oa, s_oar = None, None, None
 
     for veh in leading_vehicles:
-        # rear vehicle in the adjacent lane
-        if vehicle.lane_distance_to(veh) < 0:
-            if s_oar is None and is_adj_lane(road, veh, vehicle.lane_index):
+        if is_adj_lane(road, vehicle, veh.lane_index):
+            # rear vehicle in the adjacent lane
+            if s_oar is None and vehicle.lane_distance_to(veh) < -vehicle.LENGTH:
                 if CBF_DEBUG:
                     print(
                         "=====================Rear adjacent Vehicle: {}=====================".format(
@@ -419,23 +428,22 @@ def safe_action_av_state(
                     )
                 s_oar = veh.to_dict()
                 sf_oar = {k: s_oar[k] if k in s_oar else 0 for k in cbf.STATE_SPACE}
-            continue
-        # Vehicle in the adjacent lane
-        # AND is at dist shorter then lane change dist
-        # AND found before the leading vehicle
-        if s_oa is None and is_adj_lane(road, vehicle, veh.lane_index):
-            # This vehicle would have already changed state therefore, use old state
-            # s_oa = veh.to_dict()
-            s_oa = veh.state_hist[-1]
-            sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
-            if CBF_DEBUG:
-                print(
-                    "========================Adjacent Vehicle: {}=======================".format(
-                        veh.id
+            elif s_oa is None and vehicle.lane_distance_to(veh) >= -vehicle.LENGTH:
+                # This vehicle would have already changed state therefore, use old state
+                # s_oa = veh.to_dict()
+                if CBF_DEBUG:
+                    print(
+                        "========================Adjacent Vehicle: {}=======================".format(
+                            veh.id
+                        )
                     )
-                )
-        # Leading vehicle in the same target lane
-        if s_ol is None and is_same_lane(road, vehicle, veh.lane_index):
+                s_oa = veh.state_hist[-2]
+                sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
+        elif (
+            s_ol is None
+            and is_same_lane(road, vehicle, veh.lane_index)
+            and vehicle.lane_distance_to(veh) > 0
+        ):
             if CBF_DEBUG:
                 print(
                     "========================Leading Vehicle: {}=======================".format(
@@ -444,12 +452,17 @@ def safe_action_av_state(
                 )
             # This vehicle would have already changed state therefore, use old state
             # s_ol = veh.to_dict()
-            s_ol = veh.state_hist[-1]
+            s_ol = veh.state_hist[-2]
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
 
     # Check for obstacles ahead in the lane
     for other in road.objects:
-        if (s_ol is None or other.position[0] <= s_ol["x"]) and (abs(other.position[1] - vehicle.position[1]) <= 2):
+        if s_e["x"] > other.position[0]:
+            continue
+
+        if (s_ol is None or other.position[0] <= s_ol["x"]) and (
+            abs(other.position[1] - vehicle.position[1]) <= 2
+        ):
             if CBF_DEBUG:
                 print(
                     "========================Leading Obstacle: at {}=======================".format(
@@ -458,8 +471,10 @@ def safe_action_av_state(
                 )
             s_ol = other.to_dict()
             sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
-        if (s_oa is None or other.position[0] <= s_oa["x"]) and (2 < abs(other.position[1] - vehicle.position[1]) <= 4):
-            if CBF_DEBUG:    
+        if (s_oa is None or other.position[0] <= s_oa["x"]) and (
+            2 < abs(other.position[1] - vehicle.position[1]) <= 4
+        ):
+            if CBF_DEBUG:
                 print(
                     "========================Adjacent Obstacle: at {}=======================".format(
                         other.position
@@ -569,23 +584,29 @@ def safe_action_av_state(
         cbf.safe_dists = [s_e["vx"] * cbf.TAU, s_e["vx"] * cbf.TAU, v_oar * cbf.TAU]
         # print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
         # Time headway in [s]
-        vehicle.set_min_headway((sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU)
+        vehicle.set_min_headway(
+            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU
+        )
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
 
-    # v_ll = s_e["vx"] + action["acceleration"] * dt
+    v_ll = s_e["vx"] + action["acceleration"] * dt
 
-    # beta = np.arctan(0.5*np.tan(action["steering"]))
-    # dpsi_ll = (s_e["vx"]/vehicle.LENGTH * np.sin(beta)) + s_e["heading"]
+    beta = np.arctan(0.5 * np.tan(action["steering"]))
+    dpsi_ll = (s_e["vx"] / vehicle.LENGTH * np.sin(beta)) + s_e["heading"]
+    u_ll = np.array([v_ll, dpsi_ll])
 
-    pred_v = copy.deepcopy(vehicle)
-    pred_v.safety_layer = "none"
-    # pvs = pred_v.predict_trajectory([action], dt, dt, dt)
-    pred_v.act(action=action)
-    pred_v.step(dt=dt)
-    ps_e = pred_v.to_dict()
-    dpsi_ll = (ps_e["heading"] - s_e["heading"]) / dt
-    u_ll = np.array([ps_e["vx"], dpsi_ll])
+    # # pred_v = copy.deepcopy(vehicle)
+    # pred_v = vehicle.create_from(vehicle)
+
+    # pred_v.safety_layer = "none"
+    # # # pvs = pred_v.predict_trajectory([action], dt, dt, dt)
+    # pred_v.act(action=action)
+    # pred_v.step(dt=dt)
+    # ps_e = pred_v.to_dict()
+    # dpsi_ll = (ps_e["heading"] - s_e["heading"]) / dt
+    # u_ll = np.array([ps_e["vx"], dpsi_ll])
+
     u_safe = cbf.control_barrier(u_ll, f, g, x, dt)
 
     # Lateral control is not constrained yet.
