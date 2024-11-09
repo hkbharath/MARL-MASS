@@ -141,6 +141,7 @@ def main():
         "lat_adj_right_lc",
         "lat_ego_left_lc",
         "lat_ego_right_lc",
+        "random_lcs",
     ):
         env_id = "cbf-test-v1"
         if args.speeds is not None:
@@ -172,6 +173,8 @@ def main():
         cprofiles = env.simulate_ego_lc_crash(init_lane=1)
     elif args.test_type == "lat_ego_right_lc":
         cprofiles = env.simulate_ego_lc_crash(init_lane=0)
+    elif args.test_type == "random_lcs":
+        cprofiles = env.simulate_random_lcs(init_lane=0)
     else:
         raise ValueError("CBF type '{0}' not supported".format(args.test_type))
 

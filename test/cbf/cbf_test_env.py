@@ -97,9 +97,9 @@ class CBFTestEnv(AbstractEnv):
 
         # Highway lanes
         c, s, n = LineType.CONTINUOUS_LINE, LineType.STRIPED, LineType.NONE
-        net.add_lane("a", "b", StraightLane([0, 0], [300, 0], line_types=[c, s]))
+        net.add_lane("a", "b", StraightLane([0, 0], [500, 0], line_types=[c, s]))
 
-        rab = StraightLane([0, 4], [300, 4], line_types=[n, c])
+        rab = StraightLane([0, 4], [500, 4], line_types=[n, c])
         net.add_lane("a", "b", rab)
 
         road = Road(
@@ -116,7 +116,9 @@ class CBFTestEnv(AbstractEnv):
         road = self.road
         self.controlled_vehicles = []
 
-        init_pos = road.network.get_lane(("a", "b", init_lane)).position(self.INIT_POS[0], 0)
+        init_pos = road.network.get_lane(("a", "b", init_lane)).position(
+            self.INIT_POS[0], 0
+        )
         init_speed = self.VEHICLE_SPEEDS[0]
         if self.USE_RANDOM:
             init_speed = init_speed + np.random.rand() * 2
@@ -137,7 +139,9 @@ class CBFTestEnv(AbstractEnv):
         road.vehicles.append(ego_vehicle)
 
         other_vehicles_type = class_from_path(self.config["other_vehicles_type"])
-        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(self.INIT_POS[1], 0)
+        init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(
+            self.INIT_POS[1], 0
+        )
         init_speed_o = self.VEHICLE_SPEEDS[1]
         if self.USE_RANDOM:
             init_speed_o = init_speed_o + np.random.rand() * 2
@@ -192,8 +196,7 @@ class CBFMATestEnv(CBFTestEnv):
     # VEHICLE_SPEEDS = [30, 30, 15]
     VEHICLE_SPEEDS = [25, 25, 20]
     """ Speed of ego, adjacent, and leading vehicles"""
-    INIT_POS = [25, 50, 75]
-    # INIT_POS = [25, 75, 125]
+    INIT_POS = [25, 75, 125]
     """ Initial positions of ego, adjacent, and leading vehicles"""
 
     @classmethod
@@ -237,9 +240,9 @@ class CBFMATestEnv(CBFTestEnv):
         self.init_lane = init_lane
 
         # vid info: 2: leading, 1: adjacent, 0:ego
-        for vid in [2, 1, 0]:
+        for vid in range(len(self.INIT_POS) - 1, 0, -1):
             # This works only in two lane cases
-            if vid == 1:
+            if vid % 2 == 0:
                 spawn_init_lane = 1 - self.init_lane
             else:
                 spawn_init_lane = self.init_lane
@@ -316,6 +319,31 @@ class CBFMATestEnv(CBFTestEnv):
             obs, reward, done, info = self.step(
                 (self.ACTIONS_ALL["IDLE"], self.ACTIONS_ALL["IDLE"], ego_action)
             )
+            self.render()
+            time.sleep(0.1)
+            step += 1
+            if self.DEBUG_CBF and step > 1:
+                done = True
+        time.sleep(1)
+
+        return self._vehicle_profiles()
+
+    def simulate_random_lcs(self, test_seed=0, init_lane=0):
+        done = False
+        obs, _ = self.reset(testing_seeds=test_seed, init_lane=init_lane)
+
+        step = 0
+
+        while not done:
+            if step < 30:
+                actions = np.random.choice(
+                    len(self.ACTIONS_ALL),
+                    size=len(self.controlled_vehicles),
+                    replace=True,
+                )
+            else:
+                actions = [self.ACTIONS_ALL["FASTER"]] * len(self.controlled_vehicles)
+            obs, reward, done, info = self.step(tuple(actions))
             self.render()
             time.sleep(0.1)
             step += 1

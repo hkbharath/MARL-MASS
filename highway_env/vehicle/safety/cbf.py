@@ -4,6 +4,7 @@ from cvxopt import solvers
 from typing import List, Any, Tuple, Union, Dict
 from highway_env.utils import CBF_DEBUG
 
+
 class CBFType:
 
     STATE_SPACE = ["x", "y", "vx", "vy", "heading", "steering_angle"]
@@ -431,13 +432,14 @@ class CBF_AV(CBFType):
             print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
             print("eta: ", eta)
 
+
 class CBF_AVS(CBF_AV):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def hds(self, p, q, f, g, u):
         return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u) + q
-    
+
     def get_h(self, f, g, x, u_ll, eta=None):
         if eta is None:
             eta = self.GAMMA_B
@@ -446,7 +448,7 @@ class CBF_AVS(CBF_AV):
                 np.dot(self.p_lon, f)
                 + (eta - 1) * np.dot(self.p_lon, x)
                 + eta * self.q_lon
-                + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
+                + np.dot(self.p_lon, np.squeeze(np.dot(g, u_ll))),
                 # np.dot(self.p_lat, f)
                 # + (eta - 1) * np.dot(self.p_lat, x)
                 # + eta * self.q_lat
@@ -459,6 +461,7 @@ class CBF_AVS(CBF_AV):
             print("h: ", h)
         # assert (h.shape, (3, 1))
         return h
+
 
 class CBF_AV_Lateral(CBFType):
     # TODO: Define this class to consider lateral safe space.
@@ -643,7 +646,7 @@ def cbf_factory(cbf_type: str, **kwargs) -> CBFType:
     elif cbf_type == "av":
         return CBF_AV(**kwargs)
     elif cbf_type == "avs":
-        return(CBF_AVS(**kwargs))
+        return CBF_AVS(**kwargs)
     elif cbf_type == "cav":
         return CBF_CAV(**kwargs)
     else:

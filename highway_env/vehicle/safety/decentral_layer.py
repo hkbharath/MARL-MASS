@@ -574,15 +574,23 @@ def safe_action_av_state(
             - v_oar**2 / (2 * cbf.ACCELERATION_RANGE[0])
         )
         cbf.safe_dists = [sd_l, sd_a, sd_ar]
-        # print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        if CBF_DEBUG:
+            print("safe distance: braking:[lead,adj,rear_adj]: ", cbf.safe_dists)
         # Headway distance in [m]
         vehicle.set_min_headway(sf_ol["x"] - sf_e["x"])
 
     elif safe_dist == "theadway":
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
-        cbf.safe_dists = [s_e["vx"] * cbf.TAU, s_e["vx"] * cbf.TAU, v_oar * cbf.TAU]
-        # print("safe distance: theadway:[lead,adj,rear_adj]: ", cbf.safe_dists)
+        buffer = (cbf.ACCELERATION_RANGE[1] + 0.1) * dt * cbf.TAU
+        cbf.safe_dists = [
+            s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
+            s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
+            v_oar * cbf.TAU + vehicle.LENGTH + buffer,
+        ]
+
+        if CBF_DEBUG:
+            print("safe distance: theadway:[lead, adj, rear_adj]: ", cbf.safe_dists)
         # Time headway in [s]
         vehicle.set_min_headway(
             (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU
