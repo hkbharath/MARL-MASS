@@ -383,6 +383,8 @@ def safe_action_av_state(
     perception_dist = 6 * vehicle.SPEED_MAX
 
     s_e = vehicle.to_dict()
+    # Set min velocity for calculations in extreme case
+    s_e["vx"] = s_e["vx"] if s_e["vx"] > 1 else 1
     sf_e = {k: s_e[k] for k in cbf.STATE_SPACE}
 
     # Assume a virtual vehicle stopped beyond the perception
@@ -555,6 +557,7 @@ def safe_action_av_state(
     )
 
     f = f + x
+
     v_ol = s_ol["vx"] if s_ol is not None else 0
     v_oa = s_oa["vx"] if s_oa is not None else 0
     v_oar = s_oar["vx"] if s_oar is not None else 0
@@ -582,6 +585,8 @@ def safe_action_av_state(
     elif safe_dist == "theadway":
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
+        v_oar = v_oar if v_oar > 1 else 1 # Set min velocity for calculations in extreme case
+
         buffer = (cbf.ACCELERATION_RANGE[1] + 0.1) * dt * cbf.TAU
         cbf.safe_dists = [
             s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
@@ -592,9 +597,8 @@ def safe_action_av_state(
         if CBF_DEBUG:
             print("safe distance: theadway:[lead, adj, rear_adj]: ", cbf.safe_dists)
         # Time headway in [s]
-        headway_v = s_e["vx"] if s_e["vx"] > 0.1 else 100
         vehicle.set_min_headway(
-            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / headway_v, cbf.TAU
+            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU
         )
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
