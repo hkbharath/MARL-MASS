@@ -592,8 +592,9 @@ def safe_action_av_state(
         if CBF_DEBUG:
             print("safe distance: theadway:[lead, adj, rear_adj]: ", cbf.safe_dists)
         # Time headway in [s]
+        headway_v = s_e["vx"] if s_e["vx"] > 0.1 else 100
         vehicle.set_min_headway(
-            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU
+            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / headway_v, cbf.TAU
         )
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
