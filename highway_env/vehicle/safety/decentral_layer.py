@@ -419,7 +419,7 @@ def safe_action_av_state(
     s_ol, s_oa, s_oar = None, None, None
 
     for veh in leading_vehicles:
-        if is_adj_lane(road, vehicle, veh.lane_index):
+        if (is_adj_lane(road, vehicle, veh.lane_index) or is_adj_lane(road, veh, vehicle.lane_index)):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < -vehicle.LENGTH:
                 if CBF_DEBUG:
