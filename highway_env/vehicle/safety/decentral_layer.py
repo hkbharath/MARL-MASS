@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from highway_env.road.road import Road
     from highway_env.vehicle.safe_controller import MDPLCVehicle
     from highway_env.vehicle.controller import ControlledVehicle
-    from highway_env.vehicle.behavior import IDMVehicleL
+    from highway_env.vehicle.behavior import IDMVehicleHist
 
 
 def is_same_lane(road: "Road", vehicle: "ControlledVehicle", lane_index_2):
@@ -155,7 +155,7 @@ def safe_action_av(
         else:
             sf_oa[k] = 0.0
     # Leading vehicles are ordered by increasing distance from the ego vehicle
-    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleL"]] = (
+    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleHist"]] = (
         road.close_vehicles_to(vehicle, perception_dist, count=5, see_behind=True)
     )
 
@@ -409,7 +409,7 @@ def safe_action_av_state(
         else:
             sf_oa[k] = 0.0
     # Leading vehicles are ordered by increasing distance from the ego vehicle
-    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleL"]] = (
+    leading_vehicles: List[Union["MDPLCVehicle", "IDMVehicleHist"]] = (
         road.close_vehicles_to(vehicle, perception_dist, count=5, see_behind=True)
     )
 

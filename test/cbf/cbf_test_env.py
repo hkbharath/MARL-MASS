@@ -43,7 +43,7 @@ class CBFTestEnv(AbstractEnv):
                     "lateral": True,
                 },
                 "controlled_vehicles": 1,
-                "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleL",
+                "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
                 "screen_width": 1000,
                 "screen_height": 100,
                 "centering_position": [1.5, 0.5],

@@ -158,9 +158,7 @@ class MergeEnv(AbstractEnv):
                or self.steps >= self.config["duration"] * self.config["policy_frequency"] \
                or vehicle.position[0] < 0
 
-    def _reset(self, num_CAV=0) -> None:
-        self._make_road()
-
+    def _num_vehicles(self, num_CAV=0)->Tuple[int, int]:
         if self.config["traffic_density"] == 1:
             # easy mode: 1-3 CAVs + 1-3 HDVs
             if num_CAV == 0:
@@ -185,10 +183,18 @@ class MergeEnv(AbstractEnv):
                 num_CAV = num_CAV
             num_HDV = np.random.choice(np.arange(3, 6), 1)[0]
         
-        if not self.config["mixed_traffic"]:
+        if (self.config["mixed_traffic"] is not None 
+            and not self.config["mixed_traffic"]):
             num_CAV = num_CAV + num_HDV
             num_HDV = 0
         
+        return num_CAV, num_HDV
+    
+
+    def _reset(self, num_CAV=0) -> None:
+        self._make_road()
+
+        num_CAV, num_HDV = self._num_vehicles(num_CAV=num_CAV)    
         self._make_vehicles(num_CAV, num_HDV)
         self.action_is_safe = True
         self.T = int(self.config["duration"] * self.config["policy_frequency"])
@@ -240,7 +246,9 @@ class MergeEnv(AbstractEnv):
         road = self.road
         self.controlled_vehicles = []
 
-        #default spawn points
+        # print("CAVs:{0}, HDVs:{1}".format(num_CAV, num_HDV))
+        
+        # default spawn points
         # spawn_points_s = [10, 50, 90, 130, 170, 210]
         # spawn_points_m = [5, 45, 85, 125, 165, 205]
 
@@ -260,10 +268,12 @@ class MergeEnv(AbstractEnv):
         # spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 110, 10)]
         
         """Spawn points for CAV"""
+        num_s_c = num_CAV // 2 if num_CAV != 1 else np.random.choice(2)
+        num_m_c = num_CAV - num_s_c
         # spawn point indexes on the straight road
-        spawn_point_s_c = np.random.choice(spawn_points_s, num_CAV // 2, replace=False)
+        spawn_point_s_c = np.random.choice(spawn_points_s, num_s_c, replace=False)
         # spawn point indexes on the merging road
-        spawn_point_m_c = np.random.choice(spawn_points_m, num_CAV - num_CAV // 2,
+        spawn_point_m_c = np.random.choice(spawn_points_m, num_m_c,
                                            replace=False)
         spawn_point_s_c = list(spawn_point_s_c)
         spawn_point_m_c = list(spawn_point_m_c)
@@ -274,10 +284,12 @@ class MergeEnv(AbstractEnv):
             spawn_points_m.remove(b)
 
         """Spawn points for HDV"""
+        num_s_h = num_HDV // 2 if num_HDV != 1 else np.random.choice(2)
+        num_m_h = num_HDV - num_s_h
         # spawn point indexes on the straight road
-        spawn_point_s_h = np.random.choice(spawn_points_s, num_HDV // 2, replace=False)
+        spawn_point_s_h = np.random.choice(spawn_points_s, num_s_h, replace=False)
         # spawn point indexes on the merging road
-        spawn_point_m_h = np.random.choice(spawn_points_m, num_HDV - num_HDV // 2,
+        spawn_point_m_h = np.random.choice(spawn_points_m, num_m_h,
                                            replace=False)
         spawn_point_s_h = list(spawn_point_s_h)
         spawn_point_m_h = list(spawn_point_m_h)
@@ -289,7 +301,7 @@ class MergeEnv(AbstractEnv):
         loc_noise = list(loc_noise)
 
         """spawn the CAV on the straight road first"""
-        for _ in range(num_CAV // 2):
+        for _ in range(num_s_c):
             ego_vehicle = self._make_ego_vehicle(road=road, 
                                                          position = road.network.get_lane(("a", "b", 0))
                                                             .position(spawn_point_s_c.pop(0) + loc_noise.pop(0), 0), 
@@ -298,7 +310,7 @@ class MergeEnv(AbstractEnv):
             self.controlled_vehicles.append(ego_vehicle)
             road.vehicles.append(ego_vehicle)
         """spawn the rest CAV on the merging road"""
-        for _ in range(num_CAV - num_CAV // 2):
+        for _ in range(num_m_c):
             ego_vehicle = self._make_ego_vehicle(road = road, position = road.network.get_lane(("j", "k", 0))
                                                             .position(spawn_point_m_c.pop(0) + loc_noise.pop(0), 0), 
                                                          speed=initial_speed.pop(0),
@@ -307,7 +319,7 @@ class MergeEnv(AbstractEnv):
             road.vehicles.append(ego_vehicle)
 
         """spawn the HDV on the main road first"""
-        for _ in range(num_HDV // 2):
+        for _ in range(num_s_h):
             hd_vehicle = self._make_hdv_vehicle(road=road,
                                                 position=road.network.get_lane(("a", "b", 0)).position(
                                                     spawn_point_s_h.pop(0) + loc_noise.pop(0), 0),
@@ -317,7 +329,7 @@ class MergeEnv(AbstractEnv):
             
 
         """spawn the rest HDV on the merging road"""
-        for _ in range(num_HDV - num_HDV // 2):
+        for _ in range(num_m_h):
             hd_vehicle = self._make_hdv_vehicle(road=road,
                                                 position=road.network.get_lane(("j", "k", 0)).position(
                                                     spawn_point_m_h.pop(0) + loc_noise.pop(0), 0),
@@ -375,11 +387,34 @@ class MergeEnvLCMARL(MergeEnv):
                 "observation_config": {
                     "type": "KinematicLC"
                 }},
-            "controlled_vehicles": 4,
-            "lateral_control": "steer"
+            "lateral_control": "steer",
+            "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
+            "traffic_type": "cav", # supported option "cav", "mixed", "av", "hdv"
         })
         return config
     
+    def _num_vehicles(self, num_CAV=0):
+        if self.config["traffic_type"] == "mixed":
+            # Backward compatability
+            self.config["mixed_traffic"] = True
+            return super()._num_vehicles(num_CAV)
+        elif self.config["traffic_type"] == "cav":
+            self.config["mixed_traffic"] = False
+            return super()._num_vehicles(num_CAV)
+        elif self.config["traffic_type"] == "av":
+            num_CAV, num_HDV = super()._num_vehicles(num_CAV)
+            num_HDV = num_CAV + num_HDV -1
+            num_CAV = 1
+            return num_CAV, num_HDV
+        elif self.config["traffic_type"] == "hdv":
+            num_CAV, num_HDV = super()._num_vehicles(num_CAV)
+            num_HDV = num_CAV + num_HDV
+            num_CAV = 0
+            return num_CAV, num_HDV
+
+        return super()._num_vehicles(num_CAV)
+
+        
     def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
         safety_layer = self.config["safety_guarantee"]
         lateral_ctrl = self.config["lateral_control"]
@@ -398,6 +433,17 @@ class MergeEnvLCMARL(MergeEnv):
                                     speed=speed)
         hdv_v.id = veh_id
         return hdv_v
+    
+    def step(self, action):
+        traffic_speed = 0
+
+        obs, reward, done, info =  super().step(action)
+        for v in self.road.vehicles:
+            traffic_speed += v.speed
+        traffic_speed = traffic_speed / len(self.road.vehicles)
+        info["traffic_speed"] = traffic_speed
+        
+        return obs, reward, done, info
 
 class MergeEnvMARLSteerVel(MergeEnvLCMARL):
     n_a = 5

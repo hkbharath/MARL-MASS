@@ -493,7 +493,7 @@ class DefensiveVehicle(LinearVehicle):
                                MERGE_ACC_GAIN / (MERGE_VEL_RATIO * MERGE_TARGET_VEL),
                                2.0]
 
-class IDMVehicleL(IDMVehicle):
+class IDMVehicleHist(IDMVehicle):
     def __init__(self, road: Road, position: Vector, heading: np.float = 0, speed: np.float = 0, target_lane_index: np.int = None, target_speed: np.float = None, route: Route = None, enable_lane_change: np.bool = True, timer: np.float = None):
         super().__init__(road, position, heading, speed, target_lane_index, target_speed, route, enable_lane_change, timer)
         self.t_step = 0
