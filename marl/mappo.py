@@ -250,6 +250,7 @@ class MAPPO:
         rewards = []
         infos = []
         avg_speeds = []
+        traffic_speeds = []
         steps = []
         vehicle_speed = []
         vehicle_position = []
@@ -262,6 +263,7 @@ class MAPPO:
 
         for i in range(eval_episodes):
             avg_speed = 0
+            traffic_speed = None
             step = 0
             rewards_i = []
             infos_i = []
@@ -303,7 +305,11 @@ class MAPPO:
 
                 avg_speed += info["average_speed"]
                 min_headway = min(min_headway, info["min_headway"])
-                
+                if "traffic_speed" in info:
+                    traffic_speed = traffic_speed + info["traffic_speed"] \
+                                    if traffic_speed is not None \
+                                    else info["traffic_speed"]
+
                 if video_recorder is not None:
                     rendered_frame = env.render(mode="rgb_array")
                     video_recorder.add_frame(rendered_frame)
@@ -323,6 +329,8 @@ class MAPPO:
             avg_speeds.append(avg_speed / step)
             crash_count.append(env.is_crashed())
             step_time.append(step_time_i/ step)
+            if traffic_speed is not None:
+                traffic_speeds.append(traffic_speed / step)
 
         if video_recorder is not None:
             video_recorder.release()
@@ -332,7 +340,8 @@ class MAPPO:
                     "avg_speeds": avg_speeds,
                     "crash_count": crash_count,
                     "step_time": step_time,
-                    "min_headway": min_headway}
+                    "min_headway": min_headway,
+                    "traffic_speeds": traffic_speeds}
         # Debug safety violation
         if min_headway < env.config["HEADWAY_TIME"]:
             print(

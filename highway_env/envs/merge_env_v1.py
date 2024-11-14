@@ -124,16 +124,16 @@ class MergeEnv(AbstractEnv):
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, dict]:
         agent_info = []
-        min_headway = 1e5
+        # min_headway = 1e5
 
         obs, reward, done, info = super().step(action)
         info["agents_dones"] = tuple(self._agent_is_terminal(vehicle) for vehicle in self.controlled_vehicles)
         for v in self.controlled_vehicles:
             agent_info.append([v.position[0], v.position[1], v.speed])
-            if hasattr(v, "min_headway"):
-                min_headway = min(min_headway, v.min_headway)
+            # if hasattr(v, "min_headway"):
+            #     min_headway = min(min_headway, v.min_headway)
         info["agents_info"] = agent_info
-        info["min_headway"] = min_headway
+        # info["min_headway"] = min_headway
 
         for vehicle in self.controlled_vehicles:
             vehicle.local_reward = self._agent_reward(action, vehicle)
@@ -442,8 +442,33 @@ class MergeEnvLCMARL(MergeEnv):
             traffic_speed += v.speed
         traffic_speed = traffic_speed / len(self.road.vehicles)
         info["traffic_speed"] = traffic_speed
+        info["min_headway"] = self._compute_min_time_headway()
         
         return obs, reward, done, info
+    
+    def _reward(self, action: int) -> float:
+        # Cooperative multi-agent reward
+        if ("traffic_type" in self.config 
+            and self.config["traffic_type"] == "hdv"):
+            return sum(self._agent_reward(action, vehicle) for vehicle in self.road.vehicles) \
+               / len(self.road.vehicles)
+        return sum(self._agent_reward(action, vehicle) for vehicle in self.controlled_vehicles) \
+               / len(self.controlled_vehicles)
+    
+    def _compute_min_time_headway(self):
+        min_headway = float('inf')
+        for veh in self.controlled_vehicles:
+            headway_distance = super()._compute_headway_distance(veh)
+            for ob in self.road.objects:
+                if (abs(ob.position[1] - veh.position[1]) <= 2) and (
+                    ob.position[0] > veh.position[0]
+                ):
+                    hd = ob.position[0] - veh.position[0]
+                    if hd < headway_distance:
+                        headway_distance = hd
+            headway_distance = headway_distance - veh.LENGTH
+            min_headway = min(min_headway, headway_distance/(veh.velocity[0] if veh.velocity[0] > 1 else 1))
+        return min_headway
 
 class MergeEnvMARLSteerVel(MergeEnvLCMARL):
     n_a = 5

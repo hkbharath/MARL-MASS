@@ -169,6 +169,7 @@ def train(args):
             eval_rewards.append(rewards_mu)
 
             avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
+            traffic_speed_mu, traffic_speed_std = agg_double_list(ext_info["traffic_speeds"]) 
             crash_count = sum(crash_count)
             step_time_mu, _ = agg_double_list(step_time)
             if wandb:
@@ -176,6 +177,7 @@ def train(args):
                            "average_speed": avg_speed_mu,
                            "crash_count": crash_count,
                            "time_per_step": step_time_mu,
+                           "traffic_speed": traffic_speed_mu,
                            "min_headway": ext_info["min_headway"],
                            "min_headway_training": mappo.train_min_headway})
             # Reset min headway
@@ -299,6 +301,7 @@ def evaluate(args):
     step_time = ext_info["step_time"]
     avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
     rewards_mu, rewards_std = agg_double_list(rewards)
+    traffic_speed_mu, traffic_speed_std = agg_double_list(ext_info["traffic_speeds"]) 
     crash_count = sum(crash_count)
     step_time_mu, _ = agg_double_list(step_time)
     if wandb:
@@ -306,6 +309,7 @@ def evaluate(args):
                     "average_speed": avg_speed_mu,
                     "crash_count": crash_count,
                     "time_per_step": step_time_mu,
+                    "traffic_speed": traffic_speed_mu,
                     "min_headway": ext_info["min_headway"]})
         wandb.finish()
 
