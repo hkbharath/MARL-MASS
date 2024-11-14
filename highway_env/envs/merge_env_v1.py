@@ -387,6 +387,7 @@ class MergeEnvLCMARL(MergeEnv):
                 "observation_config": {
                     "type": "KinematicLC"
                 }},
+            "action_masking": False,
             "lateral_control": "steer",
             "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
             "traffic_type": "cav", # supported option "cav", "mixed", "av", "hdv"

@@ -17,7 +17,7 @@ def is_same_lane(road: "Road", vehicle: "ControlledVehicle", lane_index_2):
     next_lane = road.network.next_lane(lane_index_1, position=vehicle.position)
     # should not require a lane change in the next lane.
     return lane_index_1 == lane_index_2 or (
-        lane_index_2 == next_lane and lane_index_1[-1] == next_lane[-1]
+        lane_index_2 == next_lane
     )
 
 
