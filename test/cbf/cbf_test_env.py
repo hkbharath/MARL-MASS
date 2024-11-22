@@ -46,8 +46,8 @@ class CBFTestEnv(AbstractEnv):
                 "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
                 "screen_width": 1000,
                 "screen_height": 100,
-                "centering_position": [1.5, 0.5],
-                "scaling": 5,
+                "centering_position": [1, 0.5],
+                "scaling": 3,
                 "simulation_frequency": 15,  # [Hz]
                 "duration": 10,  # time step
                 "policy_frequency": 5,  # [Hz]
@@ -220,8 +220,8 @@ class CBFMATestEnv(CBFTestEnv):
                 "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleL",
                 "screen_width": 1000,
                 "screen_height": 100,
-                "centering_position": [1.5, 0.5],
-                "scaling": 5,
+                "centering_position": [1, 0.5],
+                "scaling": 3,
                 "simulation_frequency": 15,  # [Hz]
                 "duration": 10,  # time step
                 "policy_frequency": 5,  # [Hz]
@@ -240,12 +240,12 @@ class CBFMATestEnv(CBFTestEnv):
         self.init_lane = init_lane
 
         # vid info: 2: leading, 1: adjacent, 0:ego
-        for vid in range(len(self.INIT_POS) - 1, 0, -1):
+        for vid in range(len(self.INIT_POS) - 1, -1, -1):
             # This works only in two lane cases
             if vid % 2 == 0:
-                spawn_init_lane = 1 - self.init_lane
-            else:
                 spawn_init_lane = self.init_lane
+            else:
+                spawn_init_lane = 1 - self.init_lane
 
             init_pos = road.network.get_lane(("a", "b", spawn_init_lane)).position(
                 self.INIT_POS[vid], 0

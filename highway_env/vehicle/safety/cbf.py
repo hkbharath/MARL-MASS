@@ -24,6 +24,9 @@ class CBFType:
     TAU = 0.5
     """Safe time headway"""
 
+    ADJ_BUFFER = 2.0134
+    """Buffer distance with adjcent vehicle to account for worst case assumption"""
+
     def __init__(
         self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
     ):
@@ -46,6 +49,9 @@ class CBFType:
         self.is_safe: Union[bool, None] = None
         self.is_invariant: Union[bool, None] = None
         self.is_optimal: Union[bool, None] = None
+
+        self.is_ma_dynamics = False
+        self.constraint_adj = False
 
     def get_G(self, g):
         """_summary_
@@ -128,7 +134,7 @@ class CBFType:
         sol = solvers.qp(self.P, self.q, G, h, A, b)
         u_bar = sol["x"]
 
-        u_safe = np.add(np.squeeze(u_ll), np.squeeze(u_bar)[:2])
+        u_safe = np.add(np.squeeze(u_ll)[:2], np.squeeze(u_bar)[:2])
         self.check_bounds(u_safe)
 
         is_opt = sol["status"] != "unknown"
@@ -148,7 +154,10 @@ class CBFType:
 
         if CBF_DEBUG:
             print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
-        self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_safe)
+        u_status = u_safe
+        if self.is_ma_dynamics:
+            u_status = np.append(u_safe, u_ll[2:])
+        self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_status)
 
         return np.array(u_safe)
 
@@ -407,6 +416,7 @@ class CBF_AV(CBFType):
         hlds_lonr = self.hds(p=self.p_lonr, q=self.q_lonr, f=f, g=g, u=u)
 
         if CBF_DEBUG:
+            print("h_lona(s), h_lona(s'): ", hls_lona, hlds_lona)
             print("h_lonr(s), h_lonr(s'): ", hls_lonr, hlds_lonr)
 
         # if either lateral or longitudinal condition is satisified for both vehicle in front and read, lc is allowed
@@ -462,6 +472,89 @@ class CBF_AVS(CBF_AV):
         # assert (h.shape, (3, 1))
         return h
 
+
+class CBF_CAV(CBF_AVS):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.constrain_adj = False
+        self.is_ma_dynamics = True
+
+    def define_pq(self, x: np.array) -> None:
+        super().define_pq(x=x)
+
+        if self.constrain_adj:
+            self.q_lona = -self.vehicle_size[0] - self.safe_dists[1] - self.ADJ_BUFFER
+
+            if CBF_DEBUG:
+                print("Override ma -> q_lona: ", self.q_lona)
+
+    def get_G(self, g):
+
+        G = np.concatenate(
+            (
+                np.expand_dims(-np.dot(self.p_lon, g[:, :2]), axis=0),
+                [[1, 0]],
+                [[-1, 0]],
+            )
+        )
+
+        # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
+        G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
+
+        if self.constrain_adj:
+            g_adj = np.expand_dims(-np.dot(self.p_lona, g[:, :2]), axis=0)
+            G = np.concatenate((G, np.concatenate((g_adj, [[-1]]), axis=1)))
+
+        if CBF_DEBUG:
+            print("G: ", G)
+
+        return G
+
+    def get_h(self, f, g, x, u_ll, eta=None):
+        u_ma = u_ll
+        if eta is None:
+            eta = self.GAMMA_B
+        h = np.array(
+            [
+                np.dot(self.p_lon, f)
+                + (eta - 1) * np.dot(self.p_lon, x)
+                + eta * self.q_lon
+                + np.dot(self.p_lon, np.squeeze(np.dot(g, u_ma))),
+                self.action_bound[0][1] - u_ma[0],
+                -self.action_bound[0][0] + u_ma[0],
+            ]
+        )
+
+        if self.constrain_adj:
+            h = np.append(
+                h,
+                np.dot(self.p_lona, f)
+                + (eta - 1) * np.dot(self.p_lona, x)
+                + eta * self.q_lona
+                + np.dot(self.p_lona, np.squeeze(np.dot(g, u_ma))),
+            )
+
+        if CBF_DEBUG:
+            print("h: ", h)
+        return h
+
+    def update_status(self, is_opt, f, g, x, u_safe, eta=None):
+        super().update_status(is_opt, f, g, x, u_safe, eta=eta)
+        if self.constrain_adj:
+            hls_lona = self.hs(
+                p=self.p_lona, q=self.q_lona, x=x
+            )  # np.dot(self.p_lon, x) + self.q_lon
+            hlds_lona = self.hds(p=self.p_lona, q=self.q_lona, f=f, g=g, u=u_safe)
+
+            self.is_safe = self.is_safe and hls_lona >= -1e-6
+            self.is_invariant = self.is_invariant and (hlds_lona + (eta - 1) * hls_lona) >= -1e-6
+
+            if CBF_DEBUG:
+                print("Constraining adjacent vehicle")
+                print("is safe: ", self.is_safe)
+                print("is invariant: ", self.is_invariant)
+                print("h_lona(s), h_lona(s'): ", hls_lona, hlds_lona)
+            
 
 class CBF_AV_Lateral(CBFType):
     # TODO: Define this class to consider lateral safe space.
@@ -617,26 +710,6 @@ class CBF_AV_Lateral(CBFType):
         print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
         print("h_lat(s), h_lat(s'): ", hls_lat, hlds_lat)
         print("eta: ", self.GAMMA_B)
-
-
-class CBF_CAV(CBFType):
-    """CBF for CAVs solved from Chen et al. 2019. This is used only for reference at this moment.
-
-    Args:
-        CBF_CAV(int): action size for setting up CBF matrices
-    """
-
-    def __init__(
-        self, action_size: int, action_bound: List[Tuple], vehicle_size: List[int]
-    ):
-        super().__init__(action_size, action_bound, vehicle_size)
-        self.P = matrix(np.diag([1.0, 1]), tc="d")
-
-    def get_G(self, g):
-        pass
-
-    def get_h(self, f, g, x, u_ll, std):
-        pass
 
 
 def cbf_factory(cbf_type: str, **kwargs) -> CBFType:

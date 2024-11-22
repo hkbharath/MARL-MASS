@@ -45,6 +45,7 @@ class MDPLCVehicle(MDPVehicle):
         self.action_hist = []
         self.state_hist = []
         self.hl_action = None
+        self.safe_action = self.action
 
         # Addition state parameter store current steering state
         self.steering_angle = 0
@@ -114,6 +115,7 @@ class MDPLCVehicle(MDPVehicle):
 
         self.clip_actions()
         safe_action, safe_diff, safe_status = self.get_safe_action(dt)
+        self.safe_action = safe_action
 
         if self.lateral_ctrl == "steer_vel":
 
@@ -194,6 +196,7 @@ class MDPLCVehicle(MDPVehicle):
 
         state_rec["t_step"] = self.t_step
         state_rec["headway"] = self.min_headway
+
         self.state_hist.append(state_rec)
 
         safe_action = None

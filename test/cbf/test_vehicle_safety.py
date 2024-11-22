@@ -176,7 +176,7 @@ def main():
     elif args.test_type == "random_lcs":
         cprofiles = env.simulate_random_lcs(init_lane=0)
     else:
-        raise ValueError("CBF type '{0}' not supported".format(args.test_type))
+        raise ValueError("Test type '{0}' not supported".format(args.test_type))
 
     env.close()
 
