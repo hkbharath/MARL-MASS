@@ -51,7 +51,7 @@ class CBFType:
         self.is_optimal: Union[bool, None] = None
 
         self.is_ma_dynamics = False
-        self.constraint_adj = False
+        self.constrain_adj = False
 
     def get_G(self, g):
         """_summary_
@@ -169,6 +169,19 @@ class CBFType:
 
     def hds(self, p, q, f, g, u):
         return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u) + q
+
+    def eval_safety_invariance(self, p, q, x, f, g, u, eta, p_str=None):
+
+        hls = self.hs(p=p, q=q, x=x)
+        hlds = self.hds(p=p, q=q, f=f, g=g, u=u)
+
+        is_safe = hls >= -1e-6
+        is_invariant = (hlds + (eta - 1) * hls) >= -1e-6
+
+        if CBF_DEBUG and p_str is not None:
+            print(p_str, hls, hlds)
+
+        return is_safe, is_invariant
 
     def update_status(self, is_opt, f, g, x, u_safe):
         self.is_optimal = is_opt
@@ -538,26 +551,16 @@ class CBF_CAV(CBF_AVS):
             print("h: ", h)
         return h
 
-    def update_status(self, is_opt, f, g, x, u_safe, eta=None):
-        super().update_status(is_opt, f, g, x, u_safe, eta=eta)
-        if self.constrain_adj:
-            hls_lona = self.hs(
-                p=self.p_lona, q=self.q_lona, x=x
-            )  # np.dot(self.p_lon, x) + self.q_lon
-            hlds_lona = self.hds(p=self.p_lona, q=self.q_lona, f=f, g=g, u=u_safe)
+    def can_collaborate_adj(self, f, g, x, u, eta=None):
+        if eta is None:
+            eta = self.GAMMA_B
+        saf, inv = self.eval_safety_invariance(
+            p=self.p_lona, q=self.q_lona, x=x, f=f, g=g, u=u, eta=eta
+        )
+        return inv
 
-            self.is_safe = self.is_safe and hls_lona >= -1e-6
-            self.is_invariant = self.is_invariant and (hlds_lona + (eta - 1) * hls_lona) >= -1e-6
-
-            if CBF_DEBUG:
-                print("Constraining adjacent vehicle")
-                print("is safe: ", self.is_safe)
-                print("is invariant: ", self.is_invariant)
-                print("h_lona(s), h_lona(s'): ", hls_lona, hlds_lona)
-            
 
 class CBF_AV_Lateral(CBFType):
-    # TODO: Define this class to consider lateral safe space.
     """Single agent CBF for AVs defined in Wang 2020.
 
     Args:

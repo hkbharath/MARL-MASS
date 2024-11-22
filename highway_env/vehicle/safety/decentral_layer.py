@@ -2,7 +2,7 @@ import copy
 import numpy as np
 from typing import TYPE_CHECKING, List, Union, Tuple
 
-from highway_env.vehicle.safety.cbf import CBFType, cbf_factory
+from highway_env.vehicle.safety.cbf import CBFType, CBF_CAV, cbf_factory
 from highway_env.utils import CBF_DEBUG
 
 if TYPE_CHECKING:
@@ -364,7 +364,9 @@ def safe_action_av(
     return safe_action, safe_diff, cbf.get_status()
 
 
-def simplified_control(s: dict, action: dict, vl: float, dt: float) -> Tuple[float, float]:
+def simplified_control(
+    s: dict, action: dict, vl: float, dt: float
+) -> Tuple[float, float]:
     if s is None:
         return 0, 0
 
@@ -373,8 +375,9 @@ def simplified_control(s: dict, action: dict, vl: float, dt: float) -> Tuple[flo
     dpsi = (s["vx"] / vl * np.sin(beta)) + s["heading"]
 
     return v, dpsi
-    
-def derived_acceleration(safe_v:float, speed:float, dt:float):
+
+
+def derived_acceleration(safe_v: float, speed: float, dt: float):
     safe_a = (safe_v - speed) / dt
     return safe_a
 
@@ -430,24 +433,22 @@ def muliti_agent_state(
                     # left adj changing to right lane OR right adjacent changing to left lane
                     if hasattr(veh, "hl_action"):
                         # vehicle (or veh) must have initiated a lane change to consider for constraining adjacent vehicle
-                        cbf.constraint_adj = (
-                            abs(veh.heading) > 0.04
-                            and is_same_lane(
-                                vehicle=vehicle,
-                                lane_index_2=get_target_lane(veh, veh.hl_action),
-                            )
-                        ) or (
-                            abs(vehicle.heading) > 0.04
-                            and is_same_lane(
-                                vehicle=veh, lane_index_2=vehicle.target_lane_index
-                            )
-                        )
-                        if CBF_DEBUG:
-                            print(
-                                "Constrain adjacent vehicle: {0} at {1}".format(
-                                    cbf.constraint_adj, vehicle.t_step
+                        cbf.constrain_adj = vehicle.collaborate_adj and (
+                            (
+                                is_same_lane(
+                                    vehicle=vehicle,
+                                    lane_index_2=get_target_lane(veh, veh.hl_action),
                                 )
                             )
+                            or (
+                                is_same_lane(
+                                    vehicle=veh,
+                                    lane_index_2=get_target_lane(
+                                        vehicle, vehicle.hl_action
+                                    ),
+                                )
+                            )
+                        )
         elif (
             s_ol is None
             and is_same_lane(vehicle, veh.lane_index)
@@ -502,20 +503,26 @@ def muliti_agent_state(
             s_oa = other.to_dict()
             if is_ma_dynamics:
                 a_oa = {"steering": 0, "acceleration": 0}
-                cbf.constraint_adj = False
+                cbf.constrain_adj = False
                 s_oa["heading"] = 0
 
     if is_ma_dynamics:
+        if CBF_DEBUG and s_oa is not None:
+            print(
+                "Constrain adjacent vehicle: {0} at {1}".format(
+                    cbf.constrain_adj, s_oa["x"]
+                )
+            )
         return s_ol, s_oa, s_oar, a_ol, a_oa, gp
 
     return s_ol, s_oa, s_oar
 
 
-def get_target_lane(vehicle: "MDPLCVehicle", hl_action: int) -> Tuple:
-    veh_target_lane_index = vehicle.target_lane_index
+def get_target_lane(vehicle: "MDPLCVehicle", hl_action: str) -> Tuple:
+    veh_target_lane_index = vehicle.lane_index
     # LANE_RIGHT = 2
     if hl_action == "LANE_RIGHT":
-        _from, _to, _id = vehicle.target_lane_index
+        _from, _to, _id = vehicle.lane_index
         target_lane_index = (
             _from,
             _to,
@@ -527,7 +534,7 @@ def get_target_lane(vehicle: "MDPLCVehicle", hl_action: int) -> Tuple:
             veh_target_lane_index = target_lane_index
     # LANE_LEFT = 0
     elif hl_action == "LANE_LEFT":
-        _from, _to, _id = vehicle.target_lane_index
+        _from, _to, _id = vehicle.lane_index
         target_lane_index = (
             _from,
             _to,
@@ -704,7 +711,7 @@ def safe_action_av_state(
         # Safe dist using Time hadway [s]
         v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
         # Set min velocity for calculations in extreme case
-        v_oar = v_oar if v_oar > 1 else 1 
+        v_oar = v_oar if v_oar > 1 else 1
 
         buffer = (cbf.ACCELERATION_RANGE[1] + 0.1) * dt * cbf.TAU
         cbf.safe_dists = [
@@ -765,7 +772,7 @@ def safe_action_av_state(
 
 
 def safe_action_cav(
-    cbf: "CBFType",
+    cbf: "CBF_CAV",
     action,
     vehicle: "MDPLCVehicle",
     road: "Road",
@@ -968,6 +975,7 @@ def safe_action_cav(
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
 
+    vehicle.collaborate_adj = cbf.can_collaborate_adj(f=f, g=g, x=x, u=u_safe_ma)
     if CBF_DEBUG:
         print("u_safe: ", u_safe)
 

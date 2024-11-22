@@ -45,6 +45,7 @@ class MDPLCVehicle(MDPVehicle):
         self.action_hist = []
         self.state_hist = []
         self.hl_action = None
+        self.collaborate_adj = False
         self.safe_action = self.action
 
         # Addition state parameter store current steering state
