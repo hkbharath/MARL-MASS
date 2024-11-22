@@ -442,12 +442,12 @@ def muliti_agent_state(
                                 vehicle=veh, lane_index_2=vehicle.target_lane_index
                             )
                         )
-                        # if CBF_DEBUG:
-                        print(
-                            "Constrain adjacent vehicle: {0} at {1}".format(
-                                cbf.constraint_adj, vehicle.t_step
+                        if CBF_DEBUG:
+                            print(
+                                "Constrain adjacent vehicle: {0} at {1}".format(
+                                    cbf.constraint_adj, vehicle.t_step
+                                )
                             )
-                        )
         elif (
             s_ol is None
             and is_same_lane(vehicle, veh.lane_index)
@@ -774,7 +774,7 @@ def safe_action_cav(
     perception_dist=None,
 ):
 
-    if CBF_DEBUG or True:
+    if CBF_DEBUG:
         print(
             "========================Vehicle:{}=======================".format(
                 vehicle.id
