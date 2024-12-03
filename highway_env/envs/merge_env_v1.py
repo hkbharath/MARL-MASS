@@ -394,6 +394,33 @@ class MergeEnvLCMARL(MergeEnv):
         })
         return config
     
+    def _agent_reward(self, action: int, vehicle: Vehicle) -> float:
+        """
+            The vehicle is rewarded for driving with high speed
+            But an additional altruistic penalty is also suffered if any vehicle on the merging lane has a low speed.
+            :param action: the action performed
+            :return: the reward of the state-action transition
+       """
+        # the optimal reward is 0
+        scaled_speed = utils.lmap(vehicle.speed, self.config["reward_speed_range"], [0, 1])
+        # compute cost for staying on the merging lane
+        if vehicle.lane_index == ("b", "c", 1):
+            Merging_lane_cost = - np.exp(-(vehicle.position[0] - sum(self.ends[:3])) ** 2 / (
+                    10 * self.ends[2]))
+        else:
+            Merging_lane_cost = 0
+
+        # compute headway cost
+        headway_distance = self._compute_headway_distance(vehicle)
+        Headway_cost = -1* np.log(
+            headway_distance / (self.config["HEADWAY_TIME"] * vehicle.speed)) if vehicle.speed > 0 else 0
+        # compute overall reward
+        reward = self.config["COLLISION_REWARD"] * (-1 * vehicle.crashed) \
+                 + (self.config["HIGH_SPEED_REWARD"] * np.clip(scaled_speed, 0, 1)) \
+                 + self.config["MERGING_LANE_COST"] * Merging_lane_cost \
+                 + self.config["HEADWAY_COST"] * (Headway_cost if Headway_cost < 0 else 0)
+        return reward
+    
     def _num_vehicles(self, num_CAV=0):
         if self.config["traffic_type"] == "mixed":
             # Backward compatability
