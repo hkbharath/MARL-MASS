@@ -391,6 +391,7 @@ class MergeEnvLCMARL(MergeEnv):
             "lateral_control": "steer",
             "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
             "traffic_type": "cav", # supported option "cav", "mixed", "av", "hdv"
+            "agent_reward": "default" # supported "srew"
         })
         return config
     
@@ -401,6 +402,9 @@ class MergeEnvLCMARL(MergeEnv):
             :param action: the action performed
             :return: the reward of the state-action transition
        """
+        if self.config["agent_reward"] != "srew":
+            return super()._agent_reward(action=action, vehicle=vehicle)
+        
         # the optimal reward is 0
         scaled_speed = utils.lmap(vehicle.speed, self.config["reward_speed_range"], [0, 1])
         # compute cost for staying on the merging lane

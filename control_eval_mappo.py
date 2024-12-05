@@ -153,6 +153,8 @@ def evaluate(args):
         "ENV_CONFIG", "lateral_control", fallback="steer"
     )
     env.config["mixed_traffic"] = config.getboolean("ENV_CONFIG", "mixed_traffic")
+    env.config['traffic_type'] = config.get('ENV_CONFIG', 'traffic_type', fallback='cav')
+    env.config['agent_reward'] = config.get('ENV_CONFIG', 'agent_reward', fallback='default')
 
     # init wnadb logging
     project_name = config.get("PROJECT_CONFIG", "name", fallback=None) + "-evaluations"

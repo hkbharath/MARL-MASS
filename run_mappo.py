@@ -105,6 +105,7 @@ def train(args):
     env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic', fallback=None)
     env.config['traffic_type'] = config.get('ENV_CONFIG', 'traffic_type', fallback='cav')
+    env.config['agent_reward'] = config.get('ENV_CONFIG', 'agent_reward', fallback='default')
     assert env.T % ROLL_OUT_N_STEPS == 0
 
     env_eval:MergeEnvMARL = gym.make(env_id)
@@ -123,6 +124,7 @@ def train(args):
     env_eval.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env_eval.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic', fallback=None)
     env_eval.config['traffic_type'] = config.get('ENV_CONFIG', 'traffic_type', fallback='cav')
+    env_eval.config['agent_reward'] = config.get('ENV_CONFIG', 'agent_reward', fallback='default')
 
     state_dim = env.n_s
     action_dim = env.n_a
@@ -261,6 +263,7 @@ def evaluate(args):
     env.config['lateral_control'] = config.get('ENV_CONFIG', 'lateral_control', fallback='steer')
     env.config['mixed_traffic'] = config.getboolean('ENV_CONFIG', 'mixed_traffic', fallback=None)
     env.config['traffic_type'] = config.get('ENV_CONFIG', 'traffic_type', fallback='cav')
+    env.config['agent_reward'] = config.get('ENV_CONFIG', 'agent_reward', fallback='default')
 
     # init wnadb logging
     project_name = config.get('PROJECT_CONFIG', 'name', fallback=None) + '-evaluations'
