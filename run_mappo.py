@@ -181,7 +181,8 @@ def train(args):
                            "time_per_step": step_time_mu,
                            "traffic_speed": traffic_speed_mu,
                            "min_headway": ext_info["min_headway"],
-                           "min_headway_training": mappo.train_min_headway})
+                           "min_headway_training": mappo.train_min_headway,
+                           "episode": mappo.n_episodes + 1})
             # Reset min headway
             mappo.train_min_headway = float('inf')
             # save the model
