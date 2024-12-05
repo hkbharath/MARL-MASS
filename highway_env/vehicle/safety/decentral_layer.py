@@ -33,6 +33,17 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
     )
 
 
+def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
+    y_dist = vl.position[1] - ve.position[1]
+    dist_cond = abs(y_dist) <= 3.5
+    heading_cond = False
+    if y_dist > 0:
+        heading_cond = vl.heading > 0.037
+    else:
+        heading_cond = vl.heading < -0.037
+    return dist_cond and heading_cond
+
+
 def safe_action_longitudinal(
     cbf: "CBFType",
     action,
@@ -433,15 +444,16 @@ def muliti_agent_state(
                     # left adj changing to right lane OR right adjacent changing to left lane
                     if hasattr(veh, "hl_action"):
                         # vehicle (or veh) must have initiated a lane change to consider for constraining adjacent vehicle
-                        cbf.constrain_adj = vehicle.collaborate_adj and (
-                            (
+                        cbf.constrain_adj = is_approaching_same_lane(
+                            ve=vehicle, vl=veh
+                        ) or (
+                            vehicle.collaborate_adj
+                            and (
                                 is_same_lane(
                                     vehicle=vehicle,
                                     lane_index_2=get_target_lane(veh, veh.hl_action),
                                 )
-                            )
-                            or (
-                                is_same_lane(
+                                or is_same_lane(
                                     vehicle=veh,
                                     lane_index_2=get_target_lane(
                                         vehicle, vehicle.hl_action
