@@ -163,6 +163,7 @@ def init_dir(
         os.mkdir("./results/")
     if not os.path.exists(base_dir):
         os.mkdir(base_dir)
+    print("Base dir: ", base_dir)
     dirs = {}
     for path in pathes:
         cur_dir = base_dir + "/%s/" % path
