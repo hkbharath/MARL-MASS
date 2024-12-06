@@ -283,7 +283,7 @@ class Road(object):
 
         :param dt: timestep [s]
         """
-        for vehicle in self.vehicles:
+        for vehicle in sorted(self.vehicles, key=lambda v:v.position[0], reverse=True):
             vehicle.step(dt)
         for vehicle in self.vehicles:
             for other in self.vehicles:
