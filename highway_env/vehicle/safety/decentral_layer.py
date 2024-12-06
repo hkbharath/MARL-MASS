@@ -38,9 +38,9 @@ def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     dist_cond = abs(y_dist) <= 3.5
     heading_cond = False
     if y_dist > 0:
-        heading_cond = vl.heading > 0.037
+        heading_cond = vl.heading > 0.4
     else:
-        heading_cond = vl.heading < -0.037
+        heading_cond = vl.heading < -0.4
     return dist_cond and heading_cond
 
 
@@ -411,7 +411,7 @@ def muliti_agent_state(
     )
 
     for veh in surrounding_vehicles:
-        if is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index):
+        if not is_approaching_same_lane(ve=vehicle, vl=veh) and (is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < -vehicle.LENGTH:
                 if CBF_DEBUG:
@@ -444,9 +444,7 @@ def muliti_agent_state(
                     # left adj changing to right lane OR right adjacent changing to left lane
                     if hasattr(veh, "hl_action"):
                         # vehicle (or veh) must have initiated a lane change to consider for constraining adjacent vehicle
-                        cbf.constrain_adj = is_approaching_same_lane(
-                            ve=vehicle, vl=veh
-                        ) or (
+                        cbf.constrain_adj = (
                             vehicle.collaborate_adj
                             and (
                                 is_same_lane(
@@ -463,7 +461,7 @@ def muliti_agent_state(
                         )
         elif (
             s_ol is None
-            and is_same_lane(vehicle, veh.lane_index)
+            and (is_same_lane(vehicle, veh.lane_index) or is_approaching_same_lane(ve=vehicle, vl=veh))
             and vehicle.lane_distance_to(veh) > 0
         ):
             if CBF_DEBUG:
