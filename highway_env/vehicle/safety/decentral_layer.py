@@ -34,6 +34,8 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
 
 
 def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
+    if ve.lane_distance_to(vl) < 0:
+        return False
     y_dist = vl.position[1] - ve.position[1]
     dist_cond = abs(y_dist) <= 3.5
     heading_cond = False
@@ -382,6 +384,7 @@ def simplified_control(
         return 0, 0
 
     v = s["vx"] + action["acceleration"] * dt
+    v = max(0, v)
     beta = np.arctan(0.5 * np.tan(action["steering"]))
     dpsi = (s["vx"] / vl * np.sin(beta)) + s["heading"]
 
@@ -1208,6 +1211,7 @@ def safety_layer(
         )
     elif safety_type == "cav":
         v_min = vehicle.speed + vehicle.MIN_ACC * dt
+        v_min = max(0, v_min)
         v_max = vehicle.speed + vehicle.MAX_ACC * dt
         cbf: CBFType = cbf_factory(
             safety_type,

@@ -131,6 +131,7 @@ class MDPLCVehicle(MDPVehicle):
 
             self.speed += safe_action["acceleration"] * dt
             self.steering_angle += safe_action["steering"] * dt
+            self.speed = max(0, self.speed)
 
             self.fg_params = {
                 "f": {
@@ -153,6 +154,7 @@ class MDPLCVehicle(MDPVehicle):
             self.position += v * dt
             self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2) * dt
             self.speed += safe_action["acceleration"] * dt
+            self.speed = max(0, self.speed)
 
             self.fg_params = {
                 "f": {

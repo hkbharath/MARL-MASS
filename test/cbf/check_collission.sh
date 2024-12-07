@@ -1,0 +1,3 @@
+python run_mappo.py --opt eval --model-dir ./results/Dec_05_17_26_51 --exp-name marl_cav-heading-t_headway-cbf-cav-td3-srew-lr:5e5-ext:10k-check_coll --src-url https://wandb.ai/ai-driver/Safe_MARL/runs/cuovbxje/ --checkpoint 1900 --evaluation-seeds 120
+python run_mappo.py --opt eval --model-dir ./results/Dec_06_08_11_29 --exp-name marl_cav-heading-t_headway-cbf-cav-td3-srew-lr:5e5-check_coll --src-url https://wandb.ai/ai-driver/Safe_MARL/runs/zje8wefg/ --checkpoint 560 --evaluation-seeds 40
+python run_mappo.py --opt eval --model-dir ./results/Dec_05_17_26_51/ --exp-name marl_cav-heading-t_headway-cbf-cav-td3-srew-lr:5e5-ext:10k-check_coll --src-url https://wandb.ai/ai-driver/Safe_MARL/runs/cuovbxje/ --checkpoint 2000 --evaluation-seeds 160
