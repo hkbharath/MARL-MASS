@@ -261,10 +261,3 @@ class MDPLCVehicle(MDPVehicle):
 
     def set_min_headway(self, headway: float, tau: float):
         self.min_headway = headway
-        if self.min_headway < tau:
-            print(
-                "Minimum headway violation by vehicle {2}: observed {0}, but expected >{1}".format(
-                    self.min_headway, tau, self.id
-                )
-            )
-            print("Vehicle state:\n", self.to_dict())
