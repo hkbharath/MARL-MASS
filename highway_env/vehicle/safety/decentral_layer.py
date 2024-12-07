@@ -3,7 +3,7 @@ import numpy as np
 from typing import TYPE_CHECKING, List, Union, Tuple
 
 from highway_env.vehicle.safety.cbf import CBFType, CBF_CAV, cbf_factory
-from highway_env.utils import CBF_DEBUG, lmap
+from highway_env.utils import CBF_DEBUG
 
 if TYPE_CHECKING:
     from highway_env.road.road import Road
@@ -36,14 +36,11 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
 def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     y_dist = vl.position[1] - ve.position[1]
     dist_cond = abs(y_dist) <= 3.5
-    yd_range = [2,3.5]
-    heading_range = [0,np.pi/2]
-    heading_th = lmap(abs(y_dist), yd_range, heading_range) -0.01
     heading_cond = False
     if y_dist > 0:
-        heading_cond = vl.heading > heading_th
+        heading_cond = vl.heading > 0.4
     else:
-        heading_cond = vl.heading < -heading_th
+        heading_cond = vl.heading < -0.4
     return dist_cond and heading_cond
 
 
