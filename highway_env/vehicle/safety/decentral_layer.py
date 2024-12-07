@@ -38,9 +38,9 @@ def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     dist_cond = abs(y_dist) <= 3.5
     heading_cond = False
     if y_dist > 0:
-        heading_cond = vl.heading > 0.4
+        heading_cond = vl.heading > 0.037
     else:
-        heading_cond = vl.heading < -0.4
+        heading_cond = vl.heading < -0.037
     return dist_cond and heading_cond
 
 
