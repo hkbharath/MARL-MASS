@@ -416,7 +416,7 @@ def muliti_agent_state(
     for veh in surrounding_vehicles:
         if not is_approaching_same_lane(ve=vehicle, vl=veh) and (is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)):
             # rear vehicle in the adjacent lane
-            if s_oar is None and vehicle.lane_distance_to(veh) < -vehicle.LENGTH:
+            if s_oar is None and vehicle.lane_distance_to(veh) < 0:
                 if CBF_DEBUG:
                     print(
                         "=====================Rear adjacent Vehicle: {}=====================".format(
@@ -424,7 +424,7 @@ def muliti_agent_state(
                         )
                     )
                 s_oar = veh.to_dict()
-            elif s_oa is None and vehicle.lane_distance_to(veh) >= -vehicle.LENGTH:
+            elif s_oa is None and vehicle.lane_distance_to(veh) >= 0:
                 # This vehicle would have already changed state therefore, use old state
                 # s_oa = veh.to_dict()
                 if CBF_DEBUG:
