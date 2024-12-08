@@ -39,11 +39,12 @@ def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     y_dist = vl.position[1] - ve.position[1]
     dist_cond = abs(y_dist) <= 3.5
     heading_cond = False
-    if y_dist > 0:
+    if y_dist < 0:
         heading_cond = vl.heading > 0.037
     else:
         heading_cond = vl.heading < -0.037
-    return dist_cond and heading_cond
+    ret = dist_cond and heading_cond
+    return ret
 
 
 def safe_action_longitudinal(
@@ -414,7 +415,7 @@ def muliti_agent_state(
     )
 
     for veh in surrounding_vehicles:
-        if not is_approaching_same_lane(ve=vehicle, vl=veh) and (is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)):
+        if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < 0:
                 if CBF_DEBUG:

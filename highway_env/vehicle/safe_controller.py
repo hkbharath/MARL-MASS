@@ -68,14 +68,14 @@ class MDPLCVehicle(MDPVehicle):
         if self.lateral_ctrl == "steer_vel":
             d["steering_angle"] = self.steering_angle
 
-        # set heading relative to the lane heading
-        vlocal_pos = self.lane.local_coordinates(self.position)
-        d["heading"] = self.lane.heading_at(vlocal_pos[0]) - d["heading"]
+            # set heading relative to the lane heading
+            vlocal_pos = self.lane.local_coordinates(self.position)
+            d["heading"] = self.lane.heading_at(vlocal_pos[0]) - d["heading"]
 
-        if origin_vehicle:
-            origin_dict = origin_vehicle.to_dict()
-            for key in ["heading"]:
-                d[key] -= origin_dict[key]
+            if origin_vehicle:
+                origin_dict = origin_vehicle.to_dict()
+                for key in ["heading"]:
+                    d[key] -= origin_dict[key]
         return d
 
     def steering_control(self, target_lane_index: LaneIndex) -> float:
