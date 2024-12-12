@@ -415,7 +415,9 @@ def muliti_agent_state(
     )
 
     for veh in surrounding_vehicles:
-        if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)):
+        if (not (is_ma_dynamics and is_approaching_same_lane(ve=vehicle, vl=veh))) and (
+            is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)
+        ):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < 0:
                 if CBF_DEBUG:
@@ -448,24 +450,24 @@ def muliti_agent_state(
                     # left adj changing to right lane OR right adjacent changing to left lane
                     if hasattr(veh, "hl_action"):
                         # vehicle (or veh) must have initiated a lane change to consider for constraining adjacent vehicle
-                        cbf.constrain_adj = (
-                            vehicle.collaborate_adj
-                            and (
-                                is_same_lane(
-                                    vehicle=vehicle,
-                                    lane_index_2=get_target_lane(veh, veh.hl_action),
-                                )
-                                or is_same_lane(
-                                    vehicle=veh,
-                                    lane_index_2=get_target_lane(
-                                        vehicle, vehicle.hl_action
-                                    ),
-                                )
+                        cbf.constrain_adj = vehicle.collaborate_adj and (
+                            is_same_lane(
+                                vehicle=vehicle,
+                                lane_index_2=get_target_lane(veh, veh.hl_action),
+                            )
+                            or is_same_lane(
+                                vehicle=veh,
+                                lane_index_2=get_target_lane(
+                                    vehicle, vehicle.hl_action
+                                ),
                             )
                         )
         elif (
             s_ol is None
-            and (is_same_lane(vehicle, veh.lane_index) or is_approaching_same_lane(ve=vehicle, vl=veh))
+            and (
+                is_same_lane(vehicle, veh.lane_index)
+                or (is_ma_dynamics and is_approaching_same_lane(ve=vehicle, vl=veh))
+            )
             and vehicle.lane_distance_to(veh) > 0
         ):
             if CBF_DEBUG:
