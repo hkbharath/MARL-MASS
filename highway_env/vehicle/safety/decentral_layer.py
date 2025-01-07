@@ -864,7 +864,6 @@ def safe_action_cav(
     gp_ol = gp["ol"]
     gp_oa = gp["oa"]
 
-    # Worst case acceleration is assumed for observed rear vehicle as it has not made its decision yet
     # Unactuated dynamics of heading and steering angle of observed vehicle are ignored here
     f = np.ravel(
         np.array(
@@ -872,14 +871,7 @@ def safe_action_cav(
                 [0, 0],
                 [0, 0],
                 [0, 0],
-                [
-                    (
-                        (s_oar["vx"] * dt + 0.5 * cbf.ACCELERATION_RANGE[1] * dt**2)
-                        if s_oar is not None
-                        else 0
-                    ),
-                    0,
-                ],
+                [0, 0],
             ]
         )
     )
@@ -924,9 +916,21 @@ def safe_action_cav(
                     [0, 1 * dt],
                     [0, 0],
                 ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                    [1 * dt, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                    [0, 1 * dt],
+                ],
             ]
         ),
-        (cbf.action_size * 3, -1),
+        (cbf.action_size * 4, -1),
     )
     g = np.transpose(g)
 
@@ -944,22 +948,19 @@ def safe_action_cav(
 
     f = f + x
 
-    # v_ol = s_ol["vx"] if s_ol is not None else 0
-    # v_oa = s_oa["vx"] if s_oa is not None else 0
-    v_oar = s_oar["vx"] if s_oar is not None else 0
-
     if safe_dist == "theadway":
         # Safe dist using Time hadway [s]
-        v_oar = v_oar + cbf.ACCELERATION_RANGE[1] * dt
-        v_oar = (
-            v_oar if v_oar > 1 else 1
+        sv_oar = s_oar["vx"] if s_oar is not None else 0
+        sv_oar = sv_oar + cbf.ACCELERATION_RANGE[1] * dt
+        sv_oar = (
+            sv_oar if sv_oar > 1 else 1
         )  # Set min velocity for calculations in extreme case
 
         buffer = (cbf.ACCELERATION_RANGE[1] + 0.1) * dt * cbf.TAU
         cbf.safe_dists = [
             s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
             s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
-            v_oar * cbf.TAU + vehicle.LENGTH + buffer,
+            sv_oar * cbf.TAU + vehicle.LENGTH + buffer,
         ]
 
         if CBF_DEBUG:
@@ -974,8 +975,12 @@ def safe_action_cav(
     v_ll, dpsi_ll = simplified_control(s=s_e, action=action, vl=vehicle.LENGTH, dt=dt)
     v_ol, dpsi_ol = simplified_control(s=s_ol, action=a_ol, vl=vehicle.LENGTH, dt=dt)
     v_oa, dpsi_oa = simplified_control(s=s_oa, action=a_oa, vl=vehicle.LENGTH, dt=dt)
+    
+    # Worst case acceleration is assumed for observed rear vehicle as it has not made its decision yet
+    a_oar = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
+    v_oar, dpsi_oar = simplified_control(s=s_oar, action=a_oar, vl=vehicle.LENGTH, dt=dt)
 
-    u_ma = np.array([v_ll, dpsi_ll, v_ol, dpsi_ol, v_oa, dpsi_oa])
+    u_ma = np.array([v_ll, dpsi_ll, v_ol, dpsi_ol, v_oa, dpsi_oa, v_oar, dpsi_oar])
 
     u_safe = cbf.control_barrier(u_ma, f, g, x, dt)
 
