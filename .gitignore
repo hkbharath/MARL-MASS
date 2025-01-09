@@ -8,3 +8,4 @@ wandb/
 results/
 .ipynb_checkpoints/
 nohup.out
+test/ffmpeg/*.mp4
