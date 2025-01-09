@@ -444,7 +444,7 @@ def muliti_agent_state(
                         else {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[0]}
                     )
                     gp["oa"] = (
-                        veh.fg_params["g"] if hasattr(veh, "fg_params") else {"vx": 0}
+                        veh.fg_params["g"] if hasattr(veh, "fg_params") else {"vx": 1}
                     )
 
                     # left adj changing to right lane OR right adjacent changing to left lane
@@ -486,7 +486,7 @@ def muliti_agent_state(
                     else {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[0]}
                 )
                 gp["ol"] = (
-                    veh.fg_params["g"] if hasattr(veh, "fg_params") else {"vx": 0}
+                    veh.fg_params["g"] if hasattr(veh, "fg_params") else {"vx": 1}
                 )
 
     # Check for obstacles ahead in the lane
@@ -506,6 +506,7 @@ def muliti_agent_state(
             s_ol = other.to_dict()
             if is_ma_dynamics:
                 a_ol = {"steering": 0, "acceleration": 0}
+                gp["ol"] = {"vx": 0}
                 s_ol["heading"] = 0
         if (s_oa is None or other.position[0] <= s_oa["x"]) and (
             2 < abs(other.position[1] - vehicle.position[1]) <= 4
@@ -519,6 +520,7 @@ def muliti_agent_state(
             s_oa = other.to_dict()
             if is_ma_dynamics:
                 a_oa = {"steering": 0, "acceleration": 0}
+                gp["oa"] = {"vx": 0}
                 cbf.constrain_adj = False
                 s_oa["heading"] = 0
 
