@@ -3,4 +3,5 @@ pandas
 gym
 matplotlib
 opencv-python
+opencv-python-headless
 pygame

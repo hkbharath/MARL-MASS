@@ -56,6 +56,11 @@ def parse_args():
         default=None,
         help="WandB URL to link evaluations to source training runs",
     )
+    parser.add_argument(
+        "--render",
+        action="store_true",
+        help="Render simulation and record video",
+    )
     args = parser.parse_args()
     return args
 
@@ -105,7 +110,9 @@ def evaluate(args):
     torch_seed = config.getint("MODEL_CONFIG", "torch_seed")
     set_torch_seed(torch_seed=torch_seed)
 
-    video_dir = args.model_dir + "/eval_videos"
+    video_dir = None
+    if args.render:
+        video_dir = args.model_dir + "/eval_videos"
 
     # model configs
     BATCH_SIZE = config.getint("MODEL_CONFIG", "BATCH_SIZE")
@@ -127,8 +134,8 @@ def evaluate(args):
     reward_scale = config.getfloat("TRAIN_CONFIG", "reward_scale")
 
     # CBF conf
-    CBFType.GAMMA_B = config.getfloat('ENV_CONFIG', 'cbf_eta', fallback=0.0)
-    CBFType.TAU = config.getfloat('ENV_CONFIG', 'HEADWAY_TIME', fallback=1.2)
+    CBFType.GAMMA_B = config.getfloat("ENV_CONFIG", "cbf_eta", fallback=0.0)
+    CBFType.TAU = config.getfloat("ENV_CONFIG", "HEADWAY_TIME", fallback=1.2)
 
     # init env
     env_id = config.get("ENV_CONFIG", "env_name", fallback="merge-multi-agent-v0")
@@ -153,8 +160,12 @@ def evaluate(args):
         "ENV_CONFIG", "lateral_control", fallback="steer"
     )
     env.config["mixed_traffic"] = config.getboolean("ENV_CONFIG", "mixed_traffic")
-    env.config['traffic_type'] = config.get('ENV_CONFIG', 'traffic_type', fallback='cav')
-    env.config['agent_reward'] = config.get('ENV_CONFIG', 'agent_reward', fallback='default')
+    env.config["traffic_type"] = config.get(
+        "ENV_CONFIG", "traffic_type", fallback="cav"
+    )
+    env.config["agent_reward"] = config.get(
+        "ENV_CONFIG", "agent_reward", fallback="default"
+    )
 
     # init wnadb logging
     project_name = config.get("PROJECT_CONFIG", "name", fallback=None) + "-evaluations"
