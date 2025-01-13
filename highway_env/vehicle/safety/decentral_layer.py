@@ -384,9 +384,11 @@ def simplified_control(
     if s is None:
         return 0, 0
 
-    v = s["vx"] + action["acceleration"] * dt
-    v = max(0, v)
     beta = np.arctan(0.5 * np.tan(action["steering"]))
+    vx = s["speed"] + np.cos(s["heading"] + beta)
+    v = vx + action["acceleration"] * dt
+    # v = s["vx"] + action["acceleration"] * dt
+    v = max(0, v)
     dpsi = (s["vx"] / vl * np.sin(beta)) + s["heading"]
 
     return v, dpsi
@@ -632,7 +634,7 @@ def safe_action_av_state(
         raise AttributeError(
             "fg_params not found in the the vehicle class: {0}".format(type(vehicle))
         )
-    fp_e = fgp_e["f"]
+
     gp_e = fgp_e["g"]
 
     # Worst case acceleration is assumed for observed vehicle
@@ -977,10 +979,12 @@ def safe_action_cav(
     v_ll, dpsi_ll = simplified_control(s=s_e, action=action, vl=vehicle.LENGTH, dt=dt)
     v_ol, dpsi_ol = simplified_control(s=s_ol, action=a_ol, vl=vehicle.LENGTH, dt=dt)
     v_oa, dpsi_oa = simplified_control(s=s_oa, action=a_oa, vl=vehicle.LENGTH, dt=dt)
-    
+
     # Worst case acceleration is assumed for observed rear vehicle as it has not made its decision yet
     a_oar = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
-    v_oar, dpsi_oar = simplified_control(s=s_oar, action=a_oar, vl=vehicle.LENGTH, dt=dt)
+    v_oar, dpsi_oar = simplified_control(
+        s=s_oar, action=a_oar, vl=vehicle.LENGTH, dt=dt
+    )
 
     u_ma = np.array([v_ll, dpsi_ll, v_ol, dpsi_ol, v_oa, dpsi_oa, v_oar, dpsi_oar])
 
@@ -1012,152 +1016,231 @@ def safe_action_cav(
     return safe_action, safe_diff, cbf.get_status()
 
 
-def safe_action_av_lateral(
+def safe_action_avs_cint(
     cbf: "CBFType",
     action,
     vehicle: "MDPLCVehicle",
     road: "Road",
     dt: float,
-    perception_dist,
+    safe_dist: str,
+    perception_dist=None,
 ):
 
-    print(
-        "========================Vehicle:{}=======================".format(vehicle.id)
+    if CBF_DEBUG:
+        print(
+            "========================Vehicle:{}=======================".format(
+                vehicle.id
+            )
+        )
+    perception_dist = (
+        6 * vehicle.SPEED_MAX if perception_dist is None else perception_dist
     )
-    perception_dist = 6 * vehicle.SPEED_MAX
 
     s_e = vehicle.to_dict()
-    sf_e = {k: s_e[k] for k in CBFType.STATE_SPACE}
+    # Set min velocity for calculations in extreme case
+    s_e["vx"] = s_e["vx"] if s_e["vx"] > 1 else 1
+    sf_e = {k: s_e[k] for k in cbf.STATE_SPACE}
 
     # Assume a virtual vehicle stopped beyond the perception
+    sf_ol = {}
+    for k in cbf.STATE_SPACE:
+        if k == "x":
+            sf_ol[k] = s_e[k] + perception_dist + 1
+        elif k == "y":
+            sf_ol[k] = s_e[k]
+        else:
+            sf_ol[k] = 0.0
+
     sf_oa = {}
-    for k in CBFType.STATE_SPACE:
+    for k in cbf.STATE_SPACE:
         if k == "x":
             sf_oa[k] = s_e[k] + perception_dist + 1
         elif k == "y":
-            sf_oa[k] = s_e[k] + 2 * vehicle.lane.DEFAULT_WIDTH
+            if vehicle.lane_index[2] == 1:
+                sf_oa[k] = s_e[k] - vehicle.lane.DEFAULT_WIDTH
+            elif vehicle.lane_index[2] == 0:
+                sf_oa[k] = s_e[k] + vehicle.lane.DEFAULT_WIDTH
         else:
-            sf_oa[k] = 0
+            sf_oa[k] = 0.0
 
-    sf_ol = {
-        k: s_e[k] + perception_dist + 1 if (k == "x") else 0
-        for k in CBFType.STATE_SPACE
-    }
+    sf_oar = copy.deepcopy(sf_oa)
+    sf_oar["x"] = s_e["x"] - perception_dist - 1
 
-    # Leading vehicles are ordered by increasing distance from the ego vehicle
-    leading_vehicles: List[ControlledVehicle] = road.close_vehicles_to(
-        vehicle, perception_dist, count=5, see_behind=False
+    s_ol, s_oa, s_oar = muliti_agent_state(
+        cbf=cbf,
+        vehicle=vehicle,
+        road=road,
+        perception_dist=perception_dist,
     )
 
-    s_ol, s_oa = (
-        None,
-        None,
-    )
+    if s_oa is not None:
+        sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in cbf.STATE_SPACE}
 
-    for veh in leading_vehicles:
-        if vehicle.lane_distance_to(veh) < 0:
-            continue
-        # Adjacent vehicle changing lanes to ego vehicles lane
-        # OR Adjacent vehicle in the target lane while the ego vehicle is changing lane
-        if (
-            (
-                veh.lane_index != veh.target_lane_index
-                and veh.target_lane_index == vehicle.lane_index
-            )
-            or (
-                vehicle.lane_index != vehicle.target_lane_index
-                and veh.lane_index == vehicle.target_lane_index
-            )
-            and vehicle.lane_distance_to(veh) <= 50
-            and s_oa is None
-        ):
-            s_oa = veh.to_dict()
-            sf_oa = {k: s_oa[k] if k in s_oa else 0 for k in CBFType.STATE_SPACE}
-            print(
-                "========================Adjacent Vehicle: {}=======================".format(
-                    veh.id
-                )
-            )
-        # Leading vehicle in the same lane
-        elif veh.lane_index == vehicle.lane_index and s_ol is None:
-            print(
-                "========================Leading Vehicle: {}=======================".format(
-                    veh.id
-                )
-            )
-            s_ol = veh.to_dict()
-            sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in CBFType.STATE_SPACE}
+    if s_ol is not None:
+        sf_ol = {k: s_ol[k] if k in s_ol else 0 for k in cbf.STATE_SPACE}
+
+    if s_oar is not None:
+        sf_oar = {k: s_oar[k] if k in s_oar else 0 for k in cbf.STATE_SPACE}
 
     fgp_e = vehicle.fg_params
     if fgp_e is None:
         raise AttributeError(
             "fg_params not found in the the vehicle class: {0}".format(type(vehicle))
         )
-    fp_e = fgp_e["f"]
+
     gp_e = fgp_e["g"]
 
-    # Worst case acceleration is assumed for observed vehicle
     # Unactuated dynamics of heading and steering angle of observed vehicle are ignored here
     f = np.ravel(
         np.array(
             [
-                [fp_e["x"] * dt, fp_e["y"] * dt, 0, 0, fp_e["heading"], 0],
-                [
-                    sf_ol["vx"] * dt,
-                    sf_ol["vy"] * dt,
-                    CBFType.ACCELERATION_RANGE[0] * dt,
-                    0,
-                    0,
-                    0,
-                ],
-                [
-                    sf_oa["vx"] * dt,
-                    sf_oa["vy"] * dt,
-                    CBFType.ACCELERATION_RANGE[0] * dt,
-                    0,
-                    0,
-                    0,
-                ],
+                [0, 0],
+                [0, 0],
+                [0, 0],
+                [0, 0],
             ]
         )
     )
 
+    # Representation: [[s_e1, s_e2], [s_ol1, s_ol2], [s_oa1, s_oa2], [s_oar1, s_aor2] x no. of inpus in u]
     g = np.reshape(
         np.array(
             [
-                # [0.5*dt**2*gp_e["vx"], 0.5*dt**2*gp_e["vy"], gp_e["vx"] * dt, gp_e["vy"] * dt, 0, 0],
-                [0, 0, gp_e["vx"] * dt, gp_e["vy"] * dt, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 1 * dt],
-                [0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0],
+                [
+                    [gp_e["vx"] * dt, 0],
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                ],
+                [
+                    [0, 1 * dt],
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                ],
+                [
+                    [0, 0],
+                    [1 * dt, 0],
+                    [0, 0],
+                    [0, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 1 * dt],
+                    [0, 0],
+                    [0, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [1 * dt, 0],
+                    [0, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [0, 1 * dt],
+                    [0, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                    [1 * dt, 0],
+                ],
+                [
+                    [0, 0],
+                    [0, 0],
+                    [0, 0],
+                    [0, 1 * dt],
+                ],
             ]
         ),
-        (cbf.action_size, -1),
+        (cbf.action_size * 4, -1),
     )
     g = np.transpose(g)
 
     x = np.ravel(
-        np.array([list(sf_e.values()), list(sf_ol.values()), list(sf_oa.values())])
+        np.array(
+            [
+                list(sf_e.values()),
+                list(sf_ol.values()),
+                list(sf_oa.values()),
+                list(sf_oar.values()),
+            ],
+            dtype=np.float,
+        ),
     )
 
-    # TODO: Check shapes of f,g,x
-    # assert(f.shape, (len(CBFType.STATE_SPACE)*2),)
-    # assert(g.shape, (len(CBFType.STATE_SPACE)*2, cbf.action_size))
-    # assert(x.shape, (len(CBFType.STATE_SPACE)*2),)
+    f = f + x
 
-    u_ll = np.array([action["acceleration"], action["steering"]])
-    u_safe = cbf.control_barrier(u_ll, f, g, x)
+    if safe_dist == "theadway":
+        # Safe dist using Time hadway [s]
+        sv_oar = s_oar["vx"] if s_oar is not None else 0
+        sv_oar = sv_oar + cbf.ACCELERATION_RANGE[1] * dt
+        sv_oar = (
+            sv_oar if sv_oar > 1 else 1
+        )  # Set min velocity for calculations in extreme case
 
-    print("u_safe: ", u_safe)
-    safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
-    safe_diff = {"acceleration": u_safe[0] - u_ll[0], "steering": u_safe[1] - u_ll[1]}
+        buffer = (cbf.ACCELERATION_RANGE[1] + 0.1) * dt * cbf.TAU
+        cbf.safe_dists = [
+            s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
+            s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
+            sv_oar * cbf.TAU + vehicle.LENGTH + buffer,
+        ]
+
+        if CBF_DEBUG:
+            print("safe distance: theadway:[lead, adj, rear_adj]: ", cbf.safe_dists)
+        # Time headway in [s]
+        vehicle.set_min_headway(
+            (sf_ol["x"] - s_e["x"] - vehicle.LENGTH) / s_e["vx"], cbf.TAU
+        )
+    else:
+        raise ValueError("safe_dist type {} not supported".format(safe_dist))
+
+    safe_action = action
+    # Avoid lane change if adjacent vehicle is close
+    if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
+        if CBF_DEBUG:
+            print("Avoiding lane change")
+        vehicle.target_lane_index = vehicle.lane_index
+        safe_action["steering"] = vehicle.steering_control(vehicle.target_lane_index)
+
+    # Worst case deceleration for observed leading vehicle
+    wcl_action = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[0]}
+    # Worst case acceleration for rear vehicle
+    wcr_action = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
+
+    v_ll, dpsi_ll = simplified_control(
+        s=s_e, action=safe_action, vl=vehicle.LENGTH, dt=dt
+    )
+    v_ol, dpsi_ol = simplified_control(
+        s=s_ol, action=wcl_action, vl=vehicle.LENGTH, dt=dt
+    )
+    v_oa, dpsi_oa = simplified_control(
+        s=s_oa, action=wcl_action, vl=vehicle.LENGTH, dt=dt
+    )
+    v_oar, dpsi_oar = simplified_control(
+        s=s_oar, action=wcr_action, vl=vehicle.LENGTH, dt=dt
+    )
+
+    u_ma = np.array([v_ll, dpsi_ll, v_ol, dpsi_ol, v_oa, dpsi_oa, v_oar, dpsi_oar])
+
+    u_safe = cbf.control_barrier(u_ma, f, g, x, dt)
+
+    u_safe_ma = np.append(u_safe, u_ma[2:])
+
+    if CBF_DEBUG:
+        print("u_safe: ", u_safe)
+
+    u_safe[0] = derived_acceleration(u_safe[0], s_e["vx"], dt)
+
+    safe_action["acceleration"] = u_safe[0]
+    safe_diff = {
+        "acceleration": u_safe[0] - action["acceleration"],
+        "steering": u_safe[1] - action["steering"],
+    }
     return safe_action, safe_diff, cbf.get_status()
-
-
-# def safe_action_cav(cbf: CBFType, env: "AbstractEnv", vehicle: "MDPLCVehicle", action):
-#     return
 
 
 def safety_layer(
@@ -1231,6 +1314,24 @@ def safety_layer(
             vehicle_lane=vehicle.lane_index[2],
         )
         return safe_action_cav(
+            cbf=cbf,
+            action=action,
+            vehicle=vehicle,
+            dt=dt,
+            safe_dist=safe_dist,
+            **kwargs
+        )
+    elif safety_type == "avs_cint":
+        v_min = vehicle.speed + vehicle.MIN_ACC * dt
+        v_max = vehicle.speed + vehicle.MAX_ACC * dt
+        cbf: CBFType = cbf_factory(
+            "avs",
+            action_size=len(action),
+            action_bound=[(v_min, v_max), (-4 * np.pi, 4 * np.pi)],
+            vehicle_size=[vehicle.LENGTH, vehicle.WIDTH],
+            vehicle_lane=vehicle.lane_index[2],
+        )
+        return safe_action_av_state(
             cbf=cbf,
             action=action,
             vehicle=vehicle,

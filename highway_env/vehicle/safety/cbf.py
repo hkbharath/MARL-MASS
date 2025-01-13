@@ -421,6 +421,8 @@ class CBF_AV(CBFType):
         return h
 
     def is_lc_allowed(self, f, g, x, u):
+        # TODO: Defined pq here for compatability. Fix this correctly.
+        self.define_pq(x=x)
         eta = self.GAMMA_B
         hls_lona = self.hs(p=self.p_lona, q=self.q_lona, x=x)
         hlds_lona = self.hds(p=self.p_lona, q=self.q_lona, f=f, g=g, u=u)
