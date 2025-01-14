@@ -385,9 +385,7 @@ def simplified_control(
         return 0, 0
 
     beta = np.arctan(0.5 * np.tan(action["steering"]))
-    vx = s["speed"] * np.cos(s["heading"] + beta)
-    v = vx + action["acceleration"] * dt
-    # v = s["vx"] + action["acceleration"] * dt
+    v = s["vx"] + action["acceleration"] * dt
     v = max(0, v)
     dpsi = (s["vx"] / vl * np.sin(beta)) + s["heading"]
 
@@ -983,9 +981,9 @@ def safe_action_cav(
     v_oa, dpsi_oa = simplified_control(s=s_oa, action=a_oa, vl=vehicle.LENGTH, dt=dt)
 
     # Worst case acceleration is assumed for observed rear vehicle as it has not made its decision yet
-    a_oar = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
+    wcr_action = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
     v_oar, dpsi_oar = simplified_control(
-        s=s_oar, action=a_oar, vl=vehicle.LENGTH, dt=dt
+        s=s_oar, action=wcr_action, vl=vehicle.LENGTH, dt=dt
     )
 
     u_ma = np.array([v_ll, dpsi_ll, v_ol, dpsi_ol, v_oa, dpsi_oa, v_oar, dpsi_oar])
@@ -1005,10 +1003,11 @@ def safe_action_cav(
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
 
     vehicle.collaborate_adj = cbf.can_collaborate_adj(f=f, g=g, x=x, u=u_safe_ma)
+
     if CBF_DEBUG:
         print("u_safe: ", u_safe)
 
-    u_safe[0] = derived_acceleration(u_safe[0], vehicle.speed, dt)
+    u_safe[0] = derived_acceleration(u_safe[0], s_e["vx"], dt)
 
     safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
     safe_diff = {
@@ -1200,22 +1199,12 @@ def safe_action_avs_cint(
     else:
         raise ValueError("safe_dist type {} not supported".format(safe_dist))
 
-    safe_action = action
-    # Avoid lane change if adjacent vehicle is close
-    if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
-        if CBF_DEBUG:
-            print("Avoiding lane change")
-        vehicle.target_lane_index = vehicle.lane_index
-        safe_action["steering"] = vehicle.steering_control(vehicle.target_lane_index)
-
     # Worst case deceleration for observed leading vehicle
     wcl_action = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[0]}
     # Worst case acceleration for rear vehicle
     wcr_action = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[1]}
 
-    v_ll, dpsi_ll = simplified_control(
-        s=s_e, action=safe_action, vl=vehicle.LENGTH, dt=dt
-    )
+    v_ll, dpsi_ll = simplified_control(s=s_e, action=action, vl=vehicle.LENGTH, dt=dt)
     v_ol, dpsi_ol = simplified_control(
         s=s_ol, action=wcl_action, vl=vehicle.LENGTH, dt=dt
     )
@@ -1230,14 +1219,24 @@ def safe_action_avs_cint(
 
     u_safe = cbf.control_barrier(u_ma, f, g, x, dt)
 
+    # Lateral control is not constrained yet.
+    u_safe[1] = action["steering"]
+
     u_safe_ma = np.append(u_safe, u_ma[2:])
+
+    # Avoid lane change if adjacent vehicle is close
+    if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
+        if CBF_DEBUG:
+            print("Avoiding lane change")
+        vehicle.target_lane_index = vehicle.lane_index
+        u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
 
     if CBF_DEBUG:
         print("u_safe: ", u_safe)
 
     u_safe[0] = derived_acceleration(u_safe[0], s_e["vx"], dt)
 
-    safe_action["acceleration"] = u_safe[0]
+    safe_action = {"acceleration": u_safe[0], "steering": u_safe[1]}
     safe_diff = {
         "acceleration": u_safe[0] - action["acceleration"],
         "steering": u_safe[1] - action["steering"],
