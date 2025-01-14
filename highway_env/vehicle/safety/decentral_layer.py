@@ -506,10 +506,11 @@ def muliti_agent_state(
                     )
                 )
             s_ol = other.to_dict()
+            s_ol["heading"] = 0
+            s_ol["speed"] = 0
             if is_ma_dynamics:
                 a_ol = {"steering": 0, "acceleration": 0}
                 gp["ol"] = {"vx": 0}
-                s_ol["heading"] = 0
         if (s_oa is None or other.position[0] <= s_oa["x"]) and (
             2 < abs(other.position[1] - vehicle.position[1]) <= 4
         ):
@@ -520,11 +521,12 @@ def muliti_agent_state(
                     )
                 )
             s_oa = other.to_dict()
+            s_oa["heading"] = 0
+            s_oa["speed"] = 0
             if is_ma_dynamics:
                 a_oa = {"steering": 0, "acceleration": 0}
                 gp["oa"] = {"vx": 0}
                 cbf.constrain_adj = False
-                s_oa["heading"] = 0
 
     if is_ma_dynamics:
         if CBF_DEBUG and s_oa is not None:
