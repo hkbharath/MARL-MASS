@@ -385,7 +385,7 @@ def simplified_control(
         return 0, 0
 
     beta = np.arctan(0.5 * np.tan(action["steering"]))
-    vx = s["speed"] + np.cos(s["heading"] + beta)
+    vx = s["speed"] * np.cos(s["heading"] + beta)
     v = vx + action["acceleration"] * dt
     # v = s["vx"] + action["acceleration"] * dt
     v = max(0, v)
