@@ -243,13 +243,17 @@ def train(args):
     env.unwrapped.seed = env.config["seed"]
     eval_rewards = []
 
+    video_dir = None
+    if args.render:
+        video_dir = dirs["train_videos"]
+
     while mappo.n_episodes < MAX_EPISODES:
         mappo.interact()
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
             rewards, _, ext_info = mappo.evaluation(
-                env_eval, dirs["train_videos"], EVAL_EPISODES
+                env_eval, video_dir, EVAL_EPISODES
             )
             avg_speeds = ext_info["avg_speeds"]
             crash_count = ext_info["crash_count"]

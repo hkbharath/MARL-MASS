@@ -281,7 +281,7 @@ class MAPPO:
 
             n_agents = len(env.controlled_vehicles)
             
-            if not is_train and output_dir is not None:
+            if output_dir is not None:
                 rendered_frame = env.render(mode="rgb_array")
                 video_filename = os.path.join(output_dir,
                                           "testing_episode{}".format(self.n_episodes + 1) + '_{}'.format(i) +
