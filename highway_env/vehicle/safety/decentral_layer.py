@@ -384,9 +384,9 @@ def simplified_control(
     if s is None:
         return 0, 0
 
-    beta = np.arctan(0.5 * np.tan(action["steering"]))
     v = s["vx"] + action["acceleration"] * dt
     v = max(0, v)
+    beta = np.arctan(0.5 * np.tan(action["steering"]))
     dpsi = (s["vx"] / vl * np.sin(beta)) + s["heading"]
 
     return v, dpsi
@@ -505,7 +505,6 @@ def muliti_agent_state(
                 )
             s_ol = other.to_dict()
             s_ol["heading"] = 0
-            s_ol["speed"] = 0
             if is_ma_dynamics:
                 a_ol = {"steering": 0, "acceleration": 0}
                 gp["ol"] = {"vx": 0}
@@ -520,7 +519,6 @@ def muliti_agent_state(
                 )
             s_oa = other.to_dict()
             s_oa["heading"] = 0
-            s_oa["speed"] = 0
             if is_ma_dynamics:
                 a_oa = {"steering": 0, "acceleration": 0}
                 gp["oa"] = {"vx": 0}
