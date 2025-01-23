@@ -63,6 +63,6 @@ def get_gpu_with_most_free_memory():
         memory_free = [int(x) for x in result.stdout.strip().split('\n')]
         # Select the GPU with the most free memory
         best_gpu = max(range(len(memory_free)), key=lambda i: memory_free[i])
-        os.environ["CUDA_VISIBLE_DEVICES"] = f"{best_gpu}"
+        th.cuda.set_device(best_gpu)
     except Exception as e:
         print(f"Error in querying GPU memory: {e}")
