@@ -2,6 +2,7 @@ import torch as th
 from torch.autograd import Variable
 import numpy as np
 import subprocess
+import os
 
 def identity(x):
     return x
@@ -54,7 +55,6 @@ def agg_double_list(l):
 def get_gpu_with_most_free_memory():
     if not th.cuda.is_available():
         print("CUDA is not available. This script requires a GPU to run.")
-        return None
     # Run nvidia-smi and extract GPU memory information
     try:
         result = subprocess.run(['nvidia-smi', '--query-gpu=memory.free', '--format=csv,nounits,noheader'], 
@@ -63,7 +63,6 @@ def get_gpu_with_most_free_memory():
         memory_free = [int(x) for x in result.stdout.strip().split('\n')]
         # Select the GPU with the most free memory
         best_gpu = max(range(len(memory_free)), key=lambda i: memory_free[i])
-        return best_gpu
+        os.environ["CUDA_VISIBLE_DEVICES"] = f"{best_gpu}"
     except Exception as e:
         print(f"Error in querying GPU memory: {e}")
-        return None

@@ -77,14 +77,12 @@ class MAPPO:
         self.train_min_headway = float('inf')
 
         if self.use_cuda:
-            dev = get_gpu_with_most_free_memory()
-
-            if dev is not None:
-                print(f"Using GPU {dev} with the most available memory.")
-                self.actor.cuda(dev)
-                self.critic.cuda(dev)
-                self.actor_target.cuda(dev)
-                self.critic_target.cuda(dev)
+            get_gpu_with_most_free_memory()
+            if th.cuda.is_available():
+                self.actor.cuda()
+                self.critic.cuda()
+                self.actor_target.cuda()
+                self.critic_target.cuda()
             else:
                 print("Could not determine the GPU with the most available memory. Using CPU")
                 self.use_cuda = False
