@@ -432,6 +432,8 @@ def evaluate(args):
     traffic_speed_mu, traffic_speed_std = agg_double_list(ext_info["traffic_speeds"])
     crash_count = sum(crash_count)
     step_time_mu, _ = agg_double_list(step_time)
+    print("steps: ", ext_info["steps"])
+    episode_len_mu, episode_len_std  = agg_double_list(ext_info["steps"])
     if wandb:
         wandb.log(
             {
@@ -441,6 +443,8 @@ def evaluate(args):
                 "time_per_step": step_time_mu,
                 "traffic_speed": traffic_speed_mu,
                 "min_headway": ext_info["min_headway"],
+                "episode_len": episode_len_mu,
+                "episode_len_std": episode_len_std,
             }
         )
         wandb.finish()
