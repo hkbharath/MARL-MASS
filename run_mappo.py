@@ -271,6 +271,7 @@ def train(args):
             )
             crash_count = sum(crash_count)
             step_time_mu, _ = agg_double_list(step_time)
+            episode_len_mu, episode_len_std  = agg_double_list(ext_info["steps"])
             if wandb:
                 wandb.log(
                     {
@@ -282,6 +283,8 @@ def train(args):
                         "min_headway": ext_info["min_headway"],
                         "min_headway_training": mappo.train_min_headway,
                         "episode": mappo.n_episodes + 1,
+                        "episode_len": episode_len_mu,
+                        "episode_len_std": episode_len_std,
                     }
                 )
             # Reset min headway
@@ -432,7 +435,6 @@ def evaluate(args):
     traffic_speed_mu, traffic_speed_std = agg_double_list(ext_info["traffic_speeds"])
     crash_count = sum(crash_count)
     step_time_mu, _ = agg_double_list(step_time)
-    print("steps: ", ext_info["steps"])
     episode_len_mu, episode_len_std  = agg_double_list(ext_info["steps"])
     if wandb:
         wandb.log(
