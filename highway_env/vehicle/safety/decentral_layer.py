@@ -421,7 +421,7 @@ def muliti_agent_state(
     )
 
     for veh in surrounding_vehicles:
-        if (not (is_ma_dynamics and is_approaching_same_lane(ve=vehicle, vl=veh))) and (
+        if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (
             is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)
         ):
             # rear vehicle in the adjacent lane
@@ -472,7 +472,7 @@ def muliti_agent_state(
             s_ol is None
             and (
                 is_same_lane(vehicle, veh.lane_index)
-                or (is_ma_dynamics and is_approaching_same_lane(ve=vehicle, vl=veh))
+                or (is_approaching_same_lane(ve=vehicle, vl=veh))
             )
             and vehicle.lane_distance_to(veh) > 0
         ):
