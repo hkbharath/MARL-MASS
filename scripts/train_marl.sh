@@ -1,11 +1,18 @@
 #!/bin/bash
 sname==$(echo "$1" | awk -F'/' '{print $NF}')
-screen -dmS "$sname-0" python run_mappo.py --config $1
-sleep 5
-sed -i 's/\bseed = 0\b/seed = 2000/g' $1
-screen -dmS "$sname-2000" python run_mappo.py --config $1
-sleep 5
-sed -i 's/\bseed = 2000\b/seed = 2024/g' $1
-screen -dmS "$sname-2024" python run_mappo.py --config $1
-sleep 5
-sed -i 's/\bseed = 2024\b/seed = 0/g' $1
+old_seed=0
+# screen -dmS "$sname-0" python run_mappo.py --config $1
+# sleep 5
+
+# rand_seeds=(2000 2024 123 4567 890 2743 1598 3621 498 0)
+rand_seeds=(123 4567 890 2743 1598 3621 498 0)
+
+for seed in "${rand_seeds[@]}"; do
+    sleep 5
+    sed -i "s/\bseed = $old_seed\b/seed = $seed/g" $1
+    old_seed=$seed
+    if [[ "$seed" -eq 0 ]]; then
+        break
+    fi
+    screen -dmS "$sname-$seed" python run_mappo.py --config $1
+done
