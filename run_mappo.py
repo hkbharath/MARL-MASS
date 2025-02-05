@@ -441,12 +441,16 @@ def evaluate(args):
         wandb.log(
             {
                 "reward": rewards_mu,
+                "reward_stde": rewards_stde,
                 "average_speed": avg_speed_mu,
+                "average_speed_stde": avg_speed_stde,
                 "crash_count": crash_count,
                 "time_per_step": step_time_mu,
                 "traffic_speed": traffic_speed_mu,
+                "traffic_speed_stde": traffic_speed_stde,
                 "min_headway": ext_info["min_headway"],
                 "episode_len": episode_len_mu,
+                "episode_len_stde": episode_len_stde,
             }
         )
         wandb.finish()
