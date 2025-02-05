@@ -1191,7 +1191,7 @@ def safe_action_avs_cint(
         cbf.safe_dists = [
             s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
             s_e["vx"] * cbf.TAU + vehicle.LENGTH + buffer,
-            sv_oar * cbf.TAU + vehicle.LENGTH + buffer,
+            sv_oar * cbf.TAU + vehicle.LENGTH,
         ]
 
         if CBF_DEBUG:
