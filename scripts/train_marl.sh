@@ -4,8 +4,8 @@ old_seed=0
 # screen -dmS "$sname-0" python run_mappo.py --config $1
 # sleep 5
 
-# rand_seeds=(2000 2024 123 4567 890 2743 1598 3621 498 0)
-rand_seeds=(123 4567 890 2743 1598 3621 498 0)
+# rand_seeds=(2000 2024 123 4567 890 2743 1598 3621 490 0)
+rand_seeds=(123 4567 890 2743 1598 3621 490 0)
 
 for seed in "${rand_seeds[@]}"; do
     sleep 5
