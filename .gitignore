@@ -5,6 +5,7 @@ venv/
 /.pytest_cache/
 outputs/
 wandb/
-*/results/
+results/
 .ipynb_checkpoints/
 nohup.out
+test/ffmpeg/*.mp4

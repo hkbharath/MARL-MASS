@@ -11,6 +11,9 @@ dependencies:
   - torchaudio=0.7.0=py36
   - torchvision=0.8.0=py36_cu110
   - pip=20.0.2=py36_1
+  - cvxopt=1.2.7=py36hbc9fb32_0
+  - opencv=4.5.3=py36h5fab9bb_2
+  - ffmpeg=4.3.2=h37c90e5_3
   - pip:
     - control==0.9.2
     - gym==0.14.0

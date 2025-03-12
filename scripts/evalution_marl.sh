@@ -1,0 +1,1 @@
+python run_mappo.py --opt eval --model-dir ./results/Jan_24_17_56_11 --exp-name marl_cav-heading-t_headway-cbf-avs_cintu_approach-ext:20k-SAFE_SCENARIO --src-url https://wandb.ai/ai-driver/Safe_MARL/runs/p1bmwuqu/ --checkpoint 11800
