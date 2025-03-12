@@ -18,7 +18,10 @@ from datetime import datetime
 from highway_env.envs.merge_env_v1 import MergeEnvMARL
 from highway_env.vehicle.safety.cbf import CBFType
 
-DEFAULT_EVAL_SEEDS = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965"  # ,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
+DEFAULT_EVAL_SEEDS_30 = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965"
+DEFAULT_EVAL_SEEDS_100 = "132,730,103,874,343,348,235,199,185,442,849,55,784,737,992,854,546,639,902,192,222,622,102,540,771,92,604,556,81,965,450,867,762,495,915,149,469,361,429,298,222,354,26,480,611,903,375,447,993,589,977,108,683,401,276,577,205,149,316,143,105,725,515,476,827,317,211,331,845,404,319,116,171,744,272,938,312,961,606,405,329,453,199,373,726,51,459,979,718,854,675,312,39,921,204,919,504,940,663,408"
+
+DEFAULT_EVAL_SEEDS = DEFAULT_EVAL_SEEDS_30
 
 
 def parse_args():
@@ -243,14 +246,16 @@ def train(args):
     env.unwrapped.seed = env.config["seed"]
     eval_rewards = []
 
+    video_dir = None
+    if args.render:
+        video_dir = dirs["train_videos"]
+
     while mappo.n_episodes < MAX_EPISODES:
         mappo.interact()
         if mappo.n_episodes >= EPISODES_BEFORE_TRAIN:
             mappo.train()
         if mappo.episode_done and ((mappo.n_episodes + 1) % EVAL_INTERVAL == 0):
-            rewards, _, ext_info = mappo.evaluation(
-                env_eval, dirs["train_videos"], EVAL_EPISODES
-            )
+            rewards, _, ext_info = mappo.evaluation(env_eval, video_dir, EVAL_EPISODES)
             avg_speeds = ext_info["avg_speeds"]
             crash_count = ext_info["crash_count"]
             step_time = ext_info["step_time"]
@@ -267,6 +272,7 @@ def train(args):
             )
             crash_count = sum(crash_count)
             step_time_mu, _ = agg_double_list(step_time)
+            episode_len_mu, episode_len_std = agg_double_list(ext_info["steps"])
             if wandb:
                 wandb.log(
                     {
@@ -278,6 +284,8 @@ def train(args):
                         "min_headway": ext_info["min_headway"],
                         "min_headway_training": mappo.train_min_headway,
                         "episode": mappo.n_episodes + 1,
+                        "episode_len": episode_len_mu,
+                        "episode_len_std": episode_len_std,
                     }
                 )
             # Reset min headway
@@ -423,20 +431,26 @@ def evaluate(args):
     avg_speeds = ext_info["avg_speeds"]
     crash_count = ext_info["crash_count"]
     step_time = ext_info["step_time"]
-    avg_speed_mu, avg_speed_std = agg_double_list(avg_speeds)
-    rewards_mu, rewards_std = agg_double_list(rewards)
-    traffic_speed_mu, traffic_speed_std = agg_double_list(ext_info["traffic_speeds"])
+    avg_speed_mu, avg_speed_stde = agg_double_list(avg_speeds)
+    rewards_mu, rewards_stde = agg_double_list(rewards)
+    traffic_speed_mu, traffic_speed_stde = agg_double_list(ext_info["traffic_speeds"])
     crash_count = sum(crash_count)
     step_time_mu, _ = agg_double_list(step_time)
+    episode_len_mu, episode_len_stde = agg_double_list(ext_info["steps"])
     if wandb:
         wandb.log(
             {
                 "reward": rewards_mu,
+                "reward_stde": rewards_stde,
                 "average_speed": avg_speed_mu,
+                "average_speed_stde": avg_speed_stde,
                 "crash_count": crash_count,
                 "time_per_step": step_time_mu,
                 "traffic_speed": traffic_speed_mu,
+                "traffic_speed_stde": traffic_speed_stde,
                 "min_headway": ext_info["min_headway"],
+                "episode_len": episode_len_mu,
+                "episode_len_stde": episode_len_stde,
             }
         )
         wandb.finish()

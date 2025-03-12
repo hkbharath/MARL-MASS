@@ -10,6 +10,7 @@ from copy import deepcopy
 from marl.single_agent.Memory_common import OnPolicyReplayMemory
 from marl.single_agent.Model_common import ActorNetwork, CriticNetwork
 from common.utils import index_to_one_hot, to_tensor_var, VideoRecorder
+from marl.single_agent.utils_common import get_gpu_with_most_free_memory
 
 from highway_env.vehicle.safe_controller import MDPLCVehicle
 from typing import TYPE_CHECKING
@@ -75,18 +76,23 @@ class MAPPO:
 
         self.train_min_headway = float('inf')
 
+        if self.use_cuda:
+            get_gpu_with_most_free_memory()
+            if th.cuda.is_available():
+                self.actor.cuda()
+                self.critic.cuda()
+                self.actor_target.cuda()
+                self.critic_target.cuda()
+            else:
+                print("Could not determine the GPU with the most available memory. Using CPU")
+                self.use_cuda = False
+
         if self.optimizer_type == "adam":
             self.actor_optimizer = Adam(self.actor.parameters(), lr=self.actor_lr)
             self.critic_optimizer = Adam(self.critic.parameters(), lr=self.critic_lr)
         elif self.optimizer_type == "rmsprop":
             self.actor_optimizer = RMSprop(self.actor.parameters(), lr=self.actor_lr)
             self.critic_optimizer = RMSprop(self.critic.parameters(), lr=self.critic_lr)
-
-        if self.use_cuda:
-            self.actor.cuda()
-            self.critic.cuda()
-            self.actor_target.cuda()
-            self.critic_target.cuda()
 
         self.episode_rewards = [0]
         self.average_speed = [0]
@@ -281,7 +287,7 @@ class MAPPO:
 
             n_agents = len(env.controlled_vehicles)
             
-            if not is_train and output_dir is not None:
+            if output_dir is not None:
                 rendered_frame = env.render(mode="rgb_array")
                 video_filename = os.path.join(output_dir,
                                           "testing_episode{}".format(self.n_episodes + 1) + '_{}'.format(i) +

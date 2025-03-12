@@ -65,6 +65,8 @@ class MDPLCVehicle(MDPVehicle):
     ) -> dict:
         d = super().to_dict(origin_vehicle, observe_intentions)
 
+        d.update({"speed": self.speed})
+
         if self.lateral_ctrl == "steer_vel":
             d["steering_angle"] = self.steering_angle
 
@@ -182,7 +184,6 @@ class MDPLCVehicle(MDPVehicle):
             return
 
         state_rec: dict = self.to_dict()
-        state_rec.update({"speed": self.speed})
         if self.lateral_ctrl != "steer_vel":
             state_rec.update({"steering_angle": self.action["steering"]})
 
