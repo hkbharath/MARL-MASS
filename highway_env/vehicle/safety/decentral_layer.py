@@ -390,7 +390,7 @@ def simplified_control(
     elif "cos_h" in s:
         speed = s["vx"]/s["cos_h"]  # Assume that "vx" exists
 
-    v = speed + action["acceleration"] * dt
+    v = s["vx"] + action["acceleration"] * dt
     v = max(0, v)
     beta = np.arctan(0.5 * np.tan(action["steering"]))
     dpsi = (speed / vl * np.sin(beta)) + s["heading"]
