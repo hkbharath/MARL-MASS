@@ -237,7 +237,10 @@ class MergeEnv(AbstractEnv):
 
         return other_vehicles_type(road, position=position, speed=speed)
         
-        
+
+    def _record_vehicle_count(self, n_merge:int=0, n_highway:int=0) -> None:
+        return
+
     def _make_vehicles(self, num_CAV=4, num_HDV=3) -> None:
         """
         Populate a road with several vehicles on the highway and on the merging lane, as well as an ego-vehicle.
@@ -336,6 +339,8 @@ class MergeEnv(AbstractEnv):
                                                 speed=initial_speed.pop(0),
                                                 veh_id=len(road.vehicles))
             road.vehicles.append(hd_vehicle)
+        
+        self._record_vehicle_count(n_merge=num_m_c+num_m_h, n_highway=num_s_c+num_s_h)
 
     def terminate(self):
         return
@@ -370,6 +375,7 @@ class MergeEnvLCMARL(MergeEnv):
 
     n_a = 5
     n_s = 30
+    n_merge = 0
     
     @classmethod
     def default_config(cls) -> dict:
@@ -447,6 +453,10 @@ class MergeEnvLCMARL(MergeEnv):
         return super()._num_vehicles(num_CAV)
 
         
+    def _record_vehicle_count(self, n_merge:int=0, n_highway:int=0) -> None:
+        self.n_merge = n_merge
+        return
+   
     def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
         safety_layer = self.config["safety_guarantee"]
         lateral_ctrl = self.config["lateral_control"]
@@ -475,6 +485,14 @@ class MergeEnvLCMARL(MergeEnv):
         traffic_speed = traffic_speed / len(self.road.vehicles)
         info["traffic_speed"] = traffic_speed
         info["min_headway"] = self._compute_min_time_headway()
+
+        if done:
+            # Evaluate percentage of vehicle merged into the highway steam.
+            n_rem_merge = 0
+            for ve in self.road.vehicles:
+                if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
+                    n_rem_merge = n_rem_merge + 1
+            info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100
         
         return obs, reward, done, info
     

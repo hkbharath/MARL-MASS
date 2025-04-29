@@ -273,6 +273,7 @@ class MAPPO:
             step = 0
             rewards_i = []
             infos_i = []
+            merge_percents = []
             done = False
             step_time_i = 0
             if is_train:
@@ -337,6 +338,8 @@ class MAPPO:
             step_time.append(step_time_i/ step)
             if traffic_speed is not None:
                 traffic_speeds.append(traffic_speed / step)
+            if "merge_percent" in infos_i[-1]:
+                merge_percents.append(infos_i[-1]["merge_percent"])
 
         if video_recorder is not None:
             video_recorder.release()
@@ -347,7 +350,8 @@ class MAPPO:
                     "crash_count": crash_count,
                     "step_time": step_time,
                     "min_headway": min_headway,
-                    "traffic_speeds": traffic_speeds}
+                    "traffic_speeds": traffic_speeds,
+                    "merge_percents": merge_percents}
         # Debug safety violation
         if min_headway < env.config["HEADWAY_TIME"]:
             print(

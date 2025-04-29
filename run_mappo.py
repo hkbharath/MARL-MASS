@@ -437,6 +437,7 @@ def evaluate(args):
     crash_count = sum(crash_count)
     step_time_mu, _ = agg_double_list(step_time)
     episode_len_mu, episode_len_stde = agg_double_list(ext_info["steps"])
+    merge_percent_mu, merge_percent_stde = agg_double_list(ext_info["merge_percents"])
     if wandb:
         wandb.log(
             {
@@ -451,6 +452,8 @@ def evaluate(args):
                 "min_headway": ext_info["min_headway"],
                 "episode_len": episode_len_mu,
                 "episode_len_stde": episode_len_stde,
+                "merge_percent": merge_percent_mu,
+                "merge_percent_stde": merge_percent_stde,
             }
         )
         wandb.finish()
