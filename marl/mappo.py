@@ -393,7 +393,10 @@ class MAPPO:
                 save_file = 'checkpoint-{:d}.pt'.format(global_step)
         if save_file is not None:
             file_path = model_dir + save_file
-            checkpoint = th.load(file_path)
+            map_device = "cpu"
+            if self.use_cuda:
+                map_device = f"cuda:{th.cuda.current_device()}"
+            checkpoint = th.load(file_path, map_location=th.device(map_device))
             print('Checkpoint loaded: {}'.format(file_path))
             self.actor.load_state_dict(checkpoint['model_state_dict'])
             if train_mode:
