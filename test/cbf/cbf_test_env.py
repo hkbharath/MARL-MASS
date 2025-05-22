@@ -33,16 +33,19 @@ class CBFTestEnv(AbstractEnv):
         config = super().default_config()
         config.update(
             {
-                "observation": {
-                    "type": "KinematicLC",
-                    "vehicles_count": 1,
-                },
                 "action": {
-                    "type": "DiscreteMetaActionLC",
-                    "longitudinal": True,
-                    "lateral": True,
+                    "type": "MultiAgentAction",
+                    "action_config": {
+                        "type": "DiscreteMetaActionLC",
+                        "lateral": True,
+                        "longitudinal": True,
+                    },
                 },
-                "controlled_vehicles": 1,
+                "observation": {
+                    "type": "MultiAgentObservation",
+                    "observation_config": {"type": "KinematicLC"},
+                },
+                "controlled_vehicles": 2,
                 "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
                 "screen_width": 1000,
                 "screen_height": 100,
@@ -138,7 +141,6 @@ class CBFTestEnv(AbstractEnv):
         self.controlled_vehicles.append(ego_vehicle)
         road.vehicles.append(ego_vehicle)
 
-        other_vehicles_type = class_from_path(self.config["other_vehicles_type"])
         init_pos_o = road.network.get_lane(("a", "b", init_lane)).position(
             self.INIT_POS[1], 0
         )
@@ -146,12 +148,17 @@ class CBFTestEnv(AbstractEnv):
         if self.USE_RANDOM:
             init_speed_o = init_speed_o + np.random.rand() * 2
 
-        other_vehicle = other_vehicles_type(
-            road=road, position=init_pos_o, speed=init_speed_o
+        lead_vehicle = self.action_type.vehicle_class(
+            safety_layer=safety_layer,
+            lateral_ctrl=lateral_ctrl,
+            store_profile=True,
+            road=road,
+            position=init_pos_o,
+            speed=init_speed_o,
         )
-        other_vehicle.randomize_behavior()
-        other_vehicle.id = 0
-        road.vehicles.append(other_vehicle)
+        lead_vehicle.id = 0
+        self.controlled_vehicles.append(lead_vehicle)
+        road.vehicles.append(lead_vehicle)
 
     def simulate_lon_crash(self, test_seed=0) -> Tuple[dict, dict]:
         done = False
@@ -160,7 +167,7 @@ class CBFTestEnv(AbstractEnv):
         step = 0
 
         while not done:
-            obs, reward, done, info = self.step(self.ACTIONS_ALL["FASTER"])
+            obs, reward, done, info = self.step((self.ACTIONS_ALL["FASTER"], self.ACTIONS_ALL["IDLE"]))
             self.render()
             time.sleep(0.1)
             step += 1
@@ -193,10 +200,10 @@ class CBFMATestEnv(CBFTestEnv):
 
     n_a = 5
 
-    # VEHICLE_SPEEDS = [30, 30, 15]
+    EXTR_VEHICLE_SPEEDS = [30, 30, 15]
     VEHICLE_SPEEDS = [25, 25, 20]
     """ Speed of ego, adjacent, and leading vehicles"""
-    INIT_POS = [25, 75, 125]
+    INIT_POS = [25, 65, 105]
     """ Initial positions of ego, adjacent, and leading vehicles"""
 
     @classmethod
@@ -286,13 +293,12 @@ class CBFMATestEnv(CBFTestEnv):
                 self.ACTIONS_ALL["FASTER"],
             )
 
-            # Start lane change after 1s
-            if step >= 5:
-                action = (
-                    self.ACTIONS_ALL["IDLE"],
-                    adj_action,
-                    self.ACTIONS_ALL["FASTER"],
-                )
+
+            action = (
+                self.ACTIONS_ALL["IDLE"],
+                adj_action,
+                self.ACTIONS_ALL["FASTER"],
+            )
             obs, reward, done, info = self.step(action)
             self.render()
             time.sleep(0.1)

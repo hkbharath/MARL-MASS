@@ -25,7 +25,7 @@ def parse_args():
         type=str,
         required=False,
         default="none",
-        choices=["none", "cbf-avlon", "cbf-av", "cbf-avs", "cbf-cav"],
+        choices=["none", "cbf-avlon", "cbf-av", "cbf-avs", "cbf-avs_cint", "cbf-cav"],
         help="Type of CBF constraint being applied",
     )
     parser.add_argument(
@@ -82,7 +82,7 @@ def parse_args():
         "--lateral",
         type=str,
         required=False,
-        default="steer_vel",
+        default="steer",
         choices=["steer_vel", "steer"],
         help="Type of safe distance used in CBF constraints",
     )
@@ -144,6 +144,8 @@ def main():
         "random_lcs",
     ):
         env_id = "cbf-test-v1"
+        if args.extreme:
+            CBFMATestEnv.VEHICLE_SPEEDS = CBFMATestEnv.EXTR_VEHICLE_SPEEDS
         if args.speeds is not None:
             CBFMATestEnv.VEHICLE_SPEEDS = [int(v) for v in args.speeds.split(",")]
         if args.ix is not None:
