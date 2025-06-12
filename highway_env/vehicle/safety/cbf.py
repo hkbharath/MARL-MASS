@@ -154,9 +154,8 @@ class CBFType:
 
         if CBF_DEBUG:
             print("u_ll , u_bar: ", np.squeeze(u_ll), np.squeeze(u_bar)[:2])
-        u_status = u_safe
-        if self.is_ma_dynamics:
-            u_status = np.append(u_safe, u_ll[2:])
+
+        u_status = np.append(u_safe, u_ll[2:])
         self.update_status(is_opt=is_opt, f=f, g=g, x=x, u_safe=u_status)
 
         return np.array(u_safe)
@@ -195,97 +194,8 @@ class CBFType:
 
         return sol_state
 
-
-class CBF_AV_Longitudinal(CBFType):
-    """Single agent CBF for AVs defined in Wang 2020, but only for longitudinal control. This CBF consideres states from two vehicles
-    and defines three constraints. The first constraint is the cbf constraint for longitudinal motion.
-    Remaining two constraints limit the control inputs to allowed action_bounds.
-    The vehicle state space must contain 6 variables, specified in CBFType.STATE_SPACE
-
-    Args:
-        int: action size for setting up CBF matrices
-        np.array: action bounds
-    """
-
-    # GAMMA_B = 1.6251
-
-    def __init__(
-        self,
-        action_size: int,
-        action_bound: List[Tuple],
-        vehicle_size: List[int],
-        **kwargs
-    ) -> Any:
-        super().__init__(action_size, action_bound, vehicle_size)
-
-        # Supporting matrix
-        # \delta x between two vehicle is evaluated from this matrix
-        self.dx = np.ravel(np.array([[-1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]]))
-
-        # \delta vx between two vehicle is evaluated from this matrix
-        self.dvx = np.ravel(np.array([[0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]]))
-
-        # Logitudinal CBF: h_lon
-        self.p_lon = self.dx - self.TAU * self.dvx
-
-        # reduce one vehicle length, as position correspond to centre of the car
-        self.q_lon = -self.vehicle_size[0]
-
-    def get_G(self, g):
-
-        G = np.concatenate(
-            (np.expand_dims(-np.dot(self.p_lon, g), axis=0), [[1, 0]], [[-1, 0]])
-        )
-
-        # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
-        G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
-
-        if CBF_DEBUG:
-            print("G: ", G)
-
-        # assert (G.shape, (3, self.action_size))
-        return G
-
-    def get_h(self, f, g, x, u_ll, eta=None):
-
-        h = np.array(
-            [
-                np.dot(self.p_lon, f)
-                + (self.GAMMA_B - 1) * np.dot(self.p_lon, x)
-                + self.GAMMA_B * self.q_lon
-                + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
-                self.action_bound[0][1] - u_ll[0],
-                -self.action_bound[0][0] + u_ll[0],
-            ]
-        )
-        if CBF_DEBUG:
-            print("h: ", h)
-        # assert (h.shape, (3, 1))
-        return h
-
-    def update_status(self, is_opt, f, g, x, u_safe):
-        super().update_status(is_opt, f, g, x, u_safe)
-        hls = np.dot(self.p_lon, x) + self.q_lon
-        hlds = (
-            np.dot(self.p_lon, f)
-            + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe)
-            + self.q_lon
-        )
-        self.is_safe = hls >= 0
-        self.is_invariant = (hlds + (self.GAMMA_B - 1) * hls) >= 0
-
-        if CBF_DEBUG:
-            print("is safe: ", self.is_safe)
-            print("is invariant: ", self.is_invariant)
-            print("h_lon(s), h_lon(s'): ", hls, hlds)
-            print("eta: ", self.GAMMA_B)
-
-
 class CBF_AV(CBFType):
     """Single agent CBF for individual AVs defined in Wang 2020. The lateral and longitudinal safe distance constrains are implemented in this class"""
-
-    # GAMMA_B = 1.025
-    # GAMMA_LAT = 1.625
 
     STATE_SPACE = ["x", "heading"]
 
@@ -299,7 +209,7 @@ class CBF_AV(CBFType):
         vehicle_size: List[int],
         vehicle_lane: int,
     ):
-        """Lateral andlongitudinal safety constraints from Wang 2020
+        """Lateral and Longitudinal safety constraints
 
         Args:
             action_size (int): number of actions
@@ -307,8 +217,6 @@ class CBF_AV(CBFType):
             vehicle_size (List[int]): dimensions of the vehicle
             vehicle_lane (int): vehicles current lane
 
-        Raises:
-            ValueError: If vehicle in an environment with more than 2 lanes
         """
         super().__init__(action_size, action_bound, vehicle_size)
 
@@ -375,27 +283,24 @@ class CBF_AV(CBFType):
             print("q_lonr: ", self.q_lonr)
 
     def hds(self, p, q, f, g, u):
-        return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u)
+        return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u) + q
 
     def get_G(self, g):
 
         G = np.concatenate(
             (
-                np.expand_dims(-np.dot(self.p_lon, g), axis=0),
-                # np.expand_dims(-np.dot(self.p_lat, g), axis=0),
+                np.expand_dims(-np.dot(self.p_lon, g[:, :2]), axis=0),
                 [[1, 0]],
                 [[-1, 0]],
             )
         )
 
         # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
-        # G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
         G = np.concatenate((G, [[-1], [0], [0]]), axis=1)
 
         if CBF_DEBUG:
             print("G: ", G)
 
-        # assert (G.shape, (3, self.action_size))
         return G
 
     def get_h(self, f, g, x, u_ll, eta=None):
@@ -405,19 +310,15 @@ class CBF_AV(CBFType):
             [
                 np.dot(self.p_lon, f)
                 + (eta - 1) * np.dot(self.p_lon, x)
-                + (eta - 1) * self.q_lon
-                + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
-                # np.dot(self.p_lat, f)
-                # + (eta - 1) * np.dot(self.p_lat, x)
-                # + eta * self.q_lat
-                # + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
+                + eta * self.q_lon
+                + np.dot(self.p_lon, np.squeeze(np.dot(g, u_ll))),
                 self.action_bound[0][1] - u_ll[0],
                 -self.action_bound[0][0] + u_ll[0],
             ]
         )
         if CBF_DEBUG:
             print("h: ", h)
-        # assert (h.shape, (3, 1))
+
         return h
 
     def is_lc_allowed(self, f, g, x, u):
@@ -455,38 +356,7 @@ class CBF_AV(CBFType):
             print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
             print("eta: ", eta)
 
-
-class CBF_AVS(CBF_AV):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def hds(self, p, q, f, g, u):
-        return np.dot(p, f) + np.dot(np.squeeze(np.dot(p, g)), u) + q
-
-    def get_h(self, f, g, x, u_ll, eta=None):
-        if eta is None:
-            eta = self.GAMMA_B
-        h = np.array(
-            [
-                np.dot(self.p_lon, f)
-                + (eta - 1) * np.dot(self.p_lon, x)
-                + eta * self.q_lon
-                + np.dot(self.p_lon, np.squeeze(np.dot(g, u_ll))),
-                # np.dot(self.p_lat, f)
-                # + (eta - 1) * np.dot(self.p_lat, x)
-                # + eta * self.q_lat
-                # + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
-                self.action_bound[0][1] - u_ll[0],
-                -self.action_bound[0][0] + u_ll[0],
-            ]
-        )
-        if CBF_DEBUG:
-            print("h: ", h)
-        # assert (h.shape, (3, 1))
-        return h
-
-
-class CBF_CAV(CBF_AVS):
+class CBF_CAV(CBF_AV):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.constrain_adj = False
@@ -560,170 +430,11 @@ class CBF_CAV(CBF_AVS):
         return inv
 
 
-class CBF_AV_Lateral(CBFType):
-    """Single agent CBF for AVs defined in Wang 2020.
-
-    Args:
-        int: action size for setting up CBF matrices
-        np.array: action bounds
-    """
-
-    def __init__(
-        self,
-        action_size: int,
-        action_bound: List[Tuple],
-        vehicle_size: List[int],
-        vehicle_lane: int,
-    ):
-        super().__init__(action_size, action_bound, vehicle_size)
-
-        # Supporting matrix
-        # \delta x between two vehicle is evaluated from this matrix
-        self.dx_l = np.ravel(
-            np.array([[-1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-        )
-        self.dx_a = np.ravel(
-            np.array([[-1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0]])
-        )
-
-        # \delta y between two vehicle is evaluated from this matrix
-        if vehicle_lane == 0:
-            self.dy_a = np.ravel(
-                np.array([[0, -1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])
-            )
-        elif vehicle_lane == 1:
-            self.dy_a = np.ravel(
-                np.array([[0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, -1, 0, 0, 0, 0]])
-            )
-        else:
-            raise ValueError("CBF constraint is implemented for 2 lanes only")
-
-        # vx of ego vehicle
-        self.vx = np.ravel(
-            np.array([[0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-        )
-
-        # steering angle of ego vehicle
-        self.st = np.ravel(
-            np.array([[0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-        )
-
-        # safe longitudinal distance
-        self.x_safe = self.TAU * self.vx
-
-        # safe lateral distance
-        self.y_safe = 4 - vehicle_size[1]  # AbstractLane.DEFAULT_WIDTH - Vehicle width
-
-        # Logitudinal CBF: h_lon
-        self.p_lon = self.dx_l - self.x_safe
-
-        # reduce one vehicle length, as position correspond to centre of the car
-        self.q_lon = -self.vehicle_size[0]
-
-        self.p_lat = (self.dx_a / (self.TAU * 30)) + (self.dy_a / self.y_safe)
-        print("p_lat:", self.p_lat)
-        self.q_lat = -1
-
-        # TODO: Add steering angle bound.
-        # self.p_st_lb = self.st
-        # self.q_st_lb = -self.STEERING_ANGLE_RANGE[0]
-
-        # self.p_st_ub = -self.st
-        # self.q_st_ub = self.STEERING_ANGLE_RANGE[1]
-
-    def get_G(self, g):
-
-        G = np.concatenate(
-            (
-                np.expand_dims(-np.dot(self.p_lon, g), axis=0),
-                np.expand_dims(-np.dot(self.p_lat, g), axis=0),
-                [[1, 0]],
-                [[-1, 0]],
-            )
-        )
-
-        # This row added to accomodate for the extra input varibale used to stabilise the optimisation process
-        G = np.concatenate((G, [[-1], [-1], [0], [0]]), axis=1)
-
-        print("G: ", G)
-
-        # assert (G.shape, (3, self.action_size))
-        return G
-
-    def get_h(self, f, g, x, u_ll, eta=None):
-        h = np.array(
-            [
-                np.dot(self.p_lon, f)
-                + (self.GAMMA_B - 1) * np.dot(self.p_lon, x)
-                + self.GAMMA_B * self.q_lon
-                + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_ll),
-                np.dot(self.p_lat, f)
-                + (self.GAMMA_B - 1) * np.dot(self.p_lat, x)
-                + self.GAMMA_B * self.q_lat
-                + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll),
-                self.action_bound[0][1] - u_ll[0],
-                -self.action_bound[0][0] + u_ll[0],
-            ]
-        )
-        print("h: ", h)
-        # assert (h.shape, (3, 1))
-        return h
-
-    def get_Ab(self, f, g, x, u_ll):
-        # hls_lat = np.dot(self.p_lat, x) + self.q_lat
-        # hlds_lat = (
-        #     np.dot(self.p_lat, f)
-        #     + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_ll)
-        #     + self.q_lat
-        # )
-
-        # if ((hlds_lat + (self.GAMMA_B - 1) * hls_lat) < 0):
-        #     A = np.concatenate(([np.dot(self.st, g)], [[-1]]), axis=1)
-        #     b = np.array([0])
-        #     # b = np.array([-np.dot(np.squeeze(np.dot(self.st, g)), u_ll)])
-        #     print("A: ", A)
-        #     print("b: ", b)
-        #     return A,b
-
-        return None, None
-
-    def update_status(self, is_opt, f, g, x, u_safe):
-        super().update_status(is_opt, f, g, x, u_safe)
-        hls_lon = np.dot(self.p_lon, x) + self.q_lon
-        hlds_lon = (
-            np.dot(self.p_lon, f)
-            + np.dot(np.squeeze(np.dot(self.p_lon, g)), u_safe)
-            + self.q_lon
-        )
-
-        hls_lat = np.dot(self.p_lat, x) + self.q_lat
-        hlds_lat = (
-            np.dot(self.p_lat, f)
-            + np.dot(np.squeeze(np.dot(self.p_lat, g)), u_safe)
-            + self.q_lat
-        )
-
-        self.is_safe = (hls_lon >= 0) and (hls_lat >= 0)
-        self.is_invariant = ((hlds_lon + (self.GAMMA_B - 1) * hls_lon) >= 0) and (
-            (hlds_lat + (self.GAMMA_B - 1) * hls_lat) >= 0
-        )
-
-        print("is safe: ", self.is_safe)
-        print("is invariant: ", self.is_invariant)
-        print("h_lon(s), h_lon(s'): ", hls_lon, hlds_lon)
-        print("h_lat(s), h_lat(s'): ", hls_lat, hlds_lat)
-        print("eta: ", self.GAMMA_B)
-
-
 def cbf_factory(cbf_type: str, **kwargs) -> CBFType:
 
-    if cbf_type == "avlon":
-        return CBF_AV_Longitudinal(**kwargs)
-    elif cbf_type == "av":
+    if cbf_type in ("hss", "av", "avs", "avs_cint"):
         return CBF_AV(**kwargs)
-    elif cbf_type == "avs":
-        return CBF_AVS(**kwargs)
-    elif cbf_type == "cav":
+    elif cbf_type in ("mass", "cav"):
         return CBF_CAV(**kwargs)
     else:
         raise ValueError("Undefined cbf_type:{0}".format(cbf_type))
