@@ -265,6 +265,7 @@ class MAPPO:
         step_time = []
         min_headway = float('inf')
         seeds = [int(s) for s in self.test_seeds.split(',')]
+        merge_percents = []
         video_filename = None
 
         for i in range(eval_episodes):
@@ -273,7 +274,6 @@ class MAPPO:
             step = 0
             rewards_i = []
             infos_i = []
-            merge_percents = []
             done = False
             step_time_i = 0
             if is_train:

@@ -427,6 +427,19 @@ class MultiAgentObservation(ObservationType):
     def observe(self) -> tuple:
         return tuple(obs_type.observe() for obs_type in self.agents_observation_types)
 
+class MultiAgentObservationHDV(MultiAgentObservation):
+    def __init__(self,
+                 env: 'AbstractEnv',
+                 observation_config: dict,
+                 **kwargs) -> None:
+        ObservationType.__init__(self, env)
+        self.observation_config = observation_config
+        self.agents_observation_types = []
+        if self.env.road is not None:
+            for vehicle in self.env.road.vehicles:
+                obs_type = observation_factory(self.env, self.observation_config)
+                obs_type.observer_vehicle = vehicle
+                self.agents_observation_types.append(obs_type)
 
 def observation_factory(env: 'AbstractEnv', config: dict) -> ObservationType:
     if config["type"] == "TimeToCollision":
@@ -445,5 +458,7 @@ def observation_factory(env: 'AbstractEnv', config: dict) -> ObservationType:
         return MultiAgentObservation(env, **config)
     elif config["type"] == "KinematicLC":
         return KinematicLCObservation(env, **config)
+    elif config["type"] == "MultiAgentObservationHDV":
+        return MultiAgentObservationHDV(env, **config)
     else:
         raise ValueError("Unknown observation type")
