@@ -431,7 +431,7 @@ class MergeEnvLCMARL(MergeEnv):
                  + self.config["HEADWAY_COST"] * (Headway_cost if Headway_cost < 0 else 0)
         return reward
     
-    def _num_vehicles(self, num_CAV=0):
+    def _num_vehicles(self, num_CAV=0)->Tuple[int, int]:
         if self.config["traffic_type"] == "mixed":
             # Backward compatability
             self.config["mixed_traffic"] = True
@@ -545,6 +545,127 @@ class MergeEnvMARLSteerVel(MergeEnvLCMARL):
         })
         return config
 
+class MergeEnvLCHDV(MergeEnvLCMARL):
+
+    n_a = 5
+    n_s = 30
+    n_merge = 0
+    
+    @classmethod
+    def default_config(cls) -> dict:
+        config = super().default_config()
+        config.update({
+            "action": {
+                "type": "MultiAgentAction",
+                "action_config": {
+                    "type": "DiscreteMetaActionLC",
+                    "lateral": True,
+                    "longitudinal": True
+                }},
+            "observation": {
+                "type": "MultiAgentObservationHDV",
+                "observation_config": {
+                    "type": "KinematicLC"
+                }},
+            "action_masking": False,
+            "lateral_control": "steer",
+            "other_vehicles_type": "highway_env.vehicle.behavior.IDMVehicleHist",
+            "traffic_type": "hdv", # supported option "cav", "mixed", "av", "hdv"
+            "agent_reward": "default" # supported "srew"
+        })
+        return config
+    
+    @property
+    def vehicle(self) -> Vehicle:
+        """First (default) controlled vehicle."""
+        return self.road.vehicles[0] if self.road is not None and self.road.vehicles else None
+    
+    def _compute_min_time_headway_hdvs(self):
+        min_headway = float('inf')
+        for veh in self.road.vehicles:
+            if veh in self.controlled_vehicles:
+                continue
+            headway_distance = super()._compute_headway_distance(veh)
+            for ob in self.road.objects:
+                if (abs(ob.position[1] - veh.position[1]) <= 2) and (
+                    ob.position[0] > veh.position[0]
+                ):
+                    hd = ob.position[0] - veh.position[0]
+                    if hd < headway_distance:
+                        headway_distance = hd
+            headway_distance = headway_distance - veh.LENGTH
+            min_headway = min(min_headway, headway_distance/(veh.velocity[0] if veh.velocity[0] > 1 else 1))
+        return min_headway
+    
+    def step(self, action):
+        """
+        Perform an action and step the environment dynamics.
+
+        The action is executed by the ego-vehicle, and all other vehicles on the road performs their default behaviour
+        for several simulation timesteps until the next decision making step.
+
+        :param action: the action performed by the ego-vehicle
+        :return: a tuple (observation, reward, terminal, info)
+        """
+        average_speed = 0
+        if self.road is None or self.vehicle is None:
+            raise NotImplementedError("The road and vehicle must be initialized in the environment implementation")
+
+        self.steps += 1
+
+        self.new_action = action
+
+        # action is a tuple, e.g., (2, 3, 0, 1)
+        self._simulate(self.new_action)
+
+        obs = self.observation_type.observe()
+        reward = self._reward(action)
+        terminal = self._is_terminal()
+
+
+        for v in self.road.vehicles:
+            average_speed += v.speed
+        average_speed = average_speed / len(self.road.vehicles)
+
+        self.vehicle_speed.append([v.speed for v in self.road.vehicles])
+        self.vehicle_pos.append(([v.position[0] for v in self.road.vehicles]))
+        info = {
+            "speed": self.vehicle.speed,
+            "crashed": self.vehicle.crashed,
+            "average_speed": average_speed,
+        }
+
+        # if terminal:
+        #     # print("steps, action, new_action: ", self.steps, action, self.new_action)
+        #     print(self.steps)
+
+        try:
+            info["cost"] = self._cost(action)
+        except NotImplementedError:
+            pass
+
+        info["traffic_speed"] = average_speed
+        info["min_headway"] = self._compute_min_time_headway_hdvs()
+
+        if terminal:
+            # Evaluate percentage of vehicle merged into the highway steam.
+            n_rem_merge = 0
+            for ve in self.road.vehicles:
+                if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
+                    n_rem_merge = n_rem_merge + 1
+            info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100
+
+        # print(self.steps)
+        return obs, reward, terminal, info
+    
+    def is_crashed(self):
+        return any(vehicle.crashed for vehicle in self.road.vehicles)
+    
+    def _is_terminal(self) -> bool:
+        """The episode is over when a collision occurs or when the access ramp has been passed."""
+        return any(vehicle.crashed for vehicle in self.road.vehicles) \
+               or self.steps >= self.config["duration"] * self.config["policy_frequency"]
+    
 register(
     id='merge-v1',
     entry_point='highway_env.envs:MergeEnv',
@@ -558,6 +679,11 @@ register(
 register(
     id='merge-multi-agent-v1',
     entry_point='highway_env.envs:MergeEnvLCMARL',
+)
+
+register(
+    id='merge-multi-agent-hdv-v1',
+    entry_point='highway_env.envs:MergeEnvLCHDV',
 )
 
 register(
