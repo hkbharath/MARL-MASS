@@ -237,7 +237,7 @@ def evaluate(args):
     step_time_mu, _ = agg_double_list(step_time)
     episode_len_mu, episode_len_stde = agg_double_list(ext_info["steps"])
     merge_percent_mu, merge_percent_stde = agg_double_list(ext_info["merge_percents"])
-    min_headway_mu, min_headway_stde = agg_double_list(ext_info["min_headways"])
+    min_headway = min(ext_info["min_headways"])
     if wandb:
         wandb.log(
             {
@@ -249,8 +249,7 @@ def evaluate(args):
                 "time_per_step": step_time_mu,
                 "traffic_speed": traffic_speed_mu,
                 "traffic_speed_stde": traffic_speed_stde,
-                "min_headway": min_headway_mu,
-                "min_headway_stde": min_headway_stde,
+                "min_headway": min_headway,
                 "episode_len": episode_len_mu,
                 "episode_len_stde": episode_len_stde,
                 "merge_percent": merge_percent_mu,
