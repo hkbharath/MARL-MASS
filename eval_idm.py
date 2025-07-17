@@ -98,7 +98,7 @@ def idm_evaluation(env:MergeEnvMARL, output_dir, eval_seeds=[0]):
         if output_dir is not None:
             rendered_frame = env.render(mode="rgb_array")
             video_filename = os.path.join(output_dir,
-                                        "testing_episode{}".format(self.n_episodes + 1) + '_{}'.format(i) +
+                                        "testing_episode" + '_{}'.format(i) +
                                         '.mp4')
         # Init video recording
         if video_filename is not None:
@@ -181,7 +181,7 @@ def evaluate(args):
         video_dir = dirs["eval_videos"]
 
     # init env
-    env_id = config.get("ENV_CONFIG", "env_name", fallback="merge-multi-agent-v0")
+    env_id = config.get("ENV_CONFIG", "env_name", fallback="merge-multi-agent-hdv-v1")
     env: MergeEnvMARL = gym.make(env_id)
 
     env.config["seed"] = config.getint("ENV_CONFIG", "seed")
@@ -238,6 +238,7 @@ def evaluate(args):
     episode_len_mu, episode_len_stde = agg_double_list(ext_info["steps"])
     merge_percent_mu, merge_percent_stde = agg_double_list(ext_info["merge_percents"])
     min_headway = min(ext_info["min_headways"])
+    # min_headway_mu, min_headway_stde = agg_double_list(ext_info["min_headways"])
     if wandb:
         wandb.log(
             {
