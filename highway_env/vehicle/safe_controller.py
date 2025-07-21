@@ -22,6 +22,8 @@ class MDPLCVehicle(MDPVehicle):
 
     SAFE_DIST: str = "theadway"
 
+    STOPPING_SPEED = 1.6667 # m/s = 6 kmph
+
     def __init__(
         self,
         safety_layer: str = None,

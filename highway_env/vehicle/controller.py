@@ -29,6 +29,9 @@ class ControlledVehicle(Vehicle):
     MAX_STEERING_ANGLE = np.pi / 3  # [rad]
     DELTA_SPEED = 5  # [m/s]
 
+    CORNER_LEN: float = np.sqrt((Vehicle.WIDTH/2)**2 + (Vehicle.LENGTH/2)**2) + 0.0075
+    CORNER_ALPHA: float = np.arctan(Vehicle.WIDTH/Vehicle.LENGTH)
+
     def __init__(
         self,
         road: Road,
@@ -250,6 +253,18 @@ class ControlledVehicle(Vehicle):
                 ]
             )
         )
+    
+    def get_corner(self, dir:str="L"):
+        pos = np.zeros(2, dtype='float')
+        pos[0] = self.position[0] + (self.CORNER_LEN * np.cos(self.CORNER_ALPHA + self.heading))
+        if dir == "L":
+            pos[1] = self.position[1] - (self.CORNER_LEN * np.sin(self.CORNER_ALPHA + self.heading)) + 0.01
+        elif dir == "R":
+            pos[1] = self.position[1] - (self.CORNER_LEN * np.sin(-self.CORNER_ALPHA + self.heading)) + 0.01
+        else:
+            raise ValueError("Direction type {} not supported. Use from \{'L', 'R'\}".format(dir))
+        
+        return pos
 
 
 class MDPVehicle(ControlledVehicle):

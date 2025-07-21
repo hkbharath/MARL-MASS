@@ -24,14 +24,26 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
     road: "Road" = vehicle.road
     lane_index_1 = vehicle.lane_index
     next_lane = road.network.next_lane(lane_index_1, position=vehicle.position)
-    return (
+    # return (
+    #     lane_index_1[:-1] == lane_index_2[:-1]
+    #     and abs(lane_index_1[-1] - lane_index_2[-1]) == 1
+    # ) or (
+    #     lane_index_2[:-1] == next_lane[:-1]
+    #     and abs(lane_index_2[-1] - next_lane[-1]) == 1
+    # )
+
+    if (
         lane_index_1[:-1] == lane_index_2[:-1]
         and abs(lane_index_1[-1] - lane_index_2[-1]) == 1
-    ) or (
-        lane_index_2[:-1] == next_lane[:-1]
-        and abs(lane_index_2[-1] - next_lane[-1]) == 1
-    )
-
+    ):
+        return (lane_index_1[-1] - lane_index_2[-1])
+    elif (
+        next_lane[:-1] == lane_index_2[:-1]
+        and abs(next_lane[-1] - lane_index_2[-1]) == 1
+    ):
+        return (next_lane[-1] - lane_index_2[-1])
+    
+    return 0
 
 def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     if ve.lane_distance_to(vl) < 0:
@@ -71,7 +83,7 @@ def derived_acceleration(safe_v: float, speed: float, dt: float):
     return safe_a
 
 
-def muliti_agent_state(
+def multi_agent_state(
     cbf: "CBFType",
     vehicle: "MDPLCVehicle",
     road: "Road",
@@ -89,8 +101,10 @@ def muliti_agent_state(
     )
 
     for veh in surrounding_vehicles:
+        v_a = is_adj_lane(vehicle, veh.lane_index)
+        a_v = is_adj_lane(veh, vehicle.lane_index)
         if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (
-            is_adj_lane(vehicle, veh.lane_index) or is_adj_lane(veh, vehicle.lane_index)
+            v_a or a_v
         ):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < 0:
@@ -136,6 +150,17 @@ def muliti_agent_state(
                                 ),
                             )
                         )
+                    
+                    veh_corner = None
+                    # Decide to constrain if the vehicle is entering the current vehicles lane
+                    if v_a == -1 or a_v == 1:
+                        # Adj vehicle is on right side lane, therefore capture left corner.
+                        veh_corner = veh.get_corner(dir="L")
+                    elif v_a == 1 or a_v == -1:
+                        # Adj vehicle is on left side lane, therefore capture right corner.
+                        veh_corner = veh.get_corner(dir="R")
+                    if veh_corner is not None:
+                        cbf.constrain_adj = not veh.lane.on_lane(position=veh_corner)
         elif (
             s_ol is None
             and (
@@ -290,7 +315,7 @@ def safe_action_hss(
     sf_oar = copy.deepcopy(sf_oa)
     sf_oar["x"] = s_e["x"] - perception_dist - 1
 
-    s_ol, s_oa, s_oar = muliti_agent_state(
+    s_ol, s_oa, s_oar = multi_agent_state(
         cbf=cbf,
         vehicle=vehicle,
         road=road,
@@ -517,7 +542,7 @@ def safe_action_mass(
     sf_oar = copy.deepcopy(sf_oa)
     sf_oar["x"] = s_e["x"] - perception_dist - 1
 
-    s_ol, s_oa, s_oar, a_ol, a_oa, gp = muliti_agent_state(
+    s_ol, s_oa, s_oar, a_ol, a_oa, gp = multi_agent_state(
         cbf=cbf,
         vehicle=vehicle,
         road=road,
