@@ -214,7 +214,7 @@ def train(args):
     exp_name = config.get("PROJECT_CONFIG", "exp_name", fallback=None)
     if args.exp_name is not None:
         exp_name = args.exp_name
-    wb_config = {"env": env.config, "marl": config._sections}
+    wb_config = {"env": env.config, "marl": config._sections, "base_dir": os.path.abspath(output_dir)}
     wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(
