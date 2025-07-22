@@ -24,13 +24,6 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
     road: "Road" = vehicle.road
     lane_index_1 = vehicle.lane_index
     next_lane = road.network.next_lane(lane_index_1, position=vehicle.position)
-    # return (
-    #     lane_index_1[:-1] == lane_index_2[:-1]
-    #     and abs(lane_index_1[-1] - lane_index_2[-1]) == 1
-    # ) or (
-    #     lane_index_2[:-1] == next_lane[:-1]
-    #     and abs(lane_index_2[-1] - next_lane[-1]) == 1
-    # )
 
     if (
         lane_index_1[:-1] == lane_index_2[:-1]
@@ -702,6 +695,10 @@ def safe_action_mass(
             print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
+    # Avoid longitudinal constraint if vehicle is slow and changing lanes
+    elif vehicle.hl_action in ["LANE_RIGHT", "LANE_LEFT"] and vehicle.speed < vehicle.STOPPING_SPEED:
+        u_safe[0] = v_ll
+
 
     vehicle.collaborate_adj = cbf.can_collaborate_adj(f=f, g=g, x=x, u=u_safe_ma)
 
