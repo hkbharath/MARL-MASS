@@ -29,14 +29,19 @@ def is_adj_lane(vehicle: "ControlledVehicle", lane_index_2):
         lane_index_1[:-1] == lane_index_2[:-1]
         and abs(lane_index_1[-1] - lane_index_2[-1]) == 1
     ):
-        return (lane_index_1[-1] - lane_index_2[-1])
+        return lane_index_1[-1] - lane_index_2[-1]
     elif (
         next_lane[:-1] == lane_index_2[:-1]
         and abs(next_lane[-1] - lane_index_2[-1]) == 1
     ):
-        return (next_lane[-1] - lane_index_2[-1])
-    
+        return next_lane[-1] - lane_index_2[-1]
+
     return 0
+
+
+def is_on_ramp_adj(lane_index_1, lane_index_2):
+    return lane_index_1 == ("a", "b", 0) and lane_index_2 == ("k", "b", 0)
+
 
 def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     if ve.lane_distance_to(vl) < 0:
@@ -51,6 +56,7 @@ def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     ret = dist_cond and heading_cond
     return ret
 
+
 def simplified_control(
     s: dict, action: dict, vl: float, dt: float
 ) -> Tuple[float, float]:
@@ -61,7 +67,7 @@ def simplified_control(
     if "speed" in s:
         speed = s["speed"]
     elif "cos_h" in s:
-        speed = s["vx"]/s["cos_h"]  # Assume that "vx" exists
+        speed = s["vx"] / s["cos_h"]  # Assume that "vx" exists
 
     v = s["vx"] + action["acceleration"] * dt
     v = max(0, v)
@@ -96,9 +102,9 @@ def multi_agent_state(
     for veh in surrounding_vehicles:
         v_a = is_adj_lane(vehicle, veh.lane_index)
         a_v = is_adj_lane(veh, vehicle.lane_index)
-        if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (
-            v_a or a_v
-        ):
+
+        # True adjacent
+        if (not is_approaching_same_lane(ve=vehicle, vl=veh)) and (v_a or a_v):
             # rear vehicle in the adjacent lane
             if s_oar is None and vehicle.lane_distance_to(veh) < 0:
                 if CBF_DEBUG:
@@ -143,7 +149,7 @@ def multi_agent_state(
                                 ),
                             )
                         )
-                    
+
                     veh_corner = None
                     # Decide to constrain if the vehicle is entering the current vehicles lane
                     if v_a == -1 or a_v == 1:
@@ -154,6 +160,29 @@ def multi_agent_state(
                         veh_corner = veh.get_corner(dir="R")
                     if veh_corner is not None:
                         cbf.constrain_adj = not veh.lane.on_lane(position=veh_corner)
+        # adjacent hdv in merging lane
+        elif (
+            not hasattr(veh, "safe_action")
+            and is_on_ramp_adj(vehicle.lane_index, veh.lane_index)
+            and vehicle.lane_distance_to(veh) >= 0
+        ):
+            if CBF_DEBUG:
+                print(
+                    "========================Adjacent On-Ramp HDV Vehicle: {}=======================".format(
+                        veh.id
+                    )
+                )
+            s_oa = veh.state_hist[-2]
+
+            # As ego vehicle is constrained with respect to this HDV, 
+            # consider a digital twin at 0.5 s headway away from 
+            # the current position of the ego vehicle.
+            s_oa["x"] = s_oa["x"] + 0.5 * vehicle.velocity[0]
+            cbf.constrain_adj = True
+
+            a_oa = {"steering": 0, "acceleration": cbf.ACCELERATION_RANGE[0]}
+            gp["oa"] = veh.fg_params["g"] if hasattr(veh, "fg_params") else {"vx": 1}
+        # leading vehicle
         elif (
             s_ol is None
             and (
@@ -704,9 +733,11 @@ def safe_action_mass(
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
         vehicle.is_lc_safe = False
     # Avoid longitudinal constraint if vehicle is slow and changing lanes
-    elif vehicle.hl_action in ["LANE_RIGHT", "LANE_LEFT"] and vehicle.speed < vehicle.STOPPING_SPEED:
+    elif (
+        vehicle.hl_action in ["LANE_RIGHT", "LANE_LEFT"]
+        and vehicle.speed < vehicle.STOPPING_SPEED
+    ):
         u_safe[0] = v_ll
-
 
     vehicle.collaborate_adj = cbf.can_collaborate_adj(f=f, g=g, x=x, u=u_safe_ma)
 
@@ -721,6 +752,7 @@ def safe_action_mass(
         "steering": u_safe[1] - action["steering"],
     }
     return safe_action, safe_diff, cbf.get_status()
+
 
 def safety_layer(
     safety_type: str,
