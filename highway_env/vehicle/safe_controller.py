@@ -57,6 +57,9 @@ class MDPLCVehicle(MDPVehicle):
 
         self.fg_params = None
 
+        self.is_collaborating = False
+        self.is_lc_safe = False
+
     def act(self, action: Union[dict, str] = None) -> None:
         if isinstance(action, str):
             self.hl_action = action

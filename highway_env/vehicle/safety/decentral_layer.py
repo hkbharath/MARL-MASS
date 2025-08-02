@@ -465,12 +465,16 @@ def safe_action_hss(
 
     u_safe_ma = np.append(u_safe, u_ma[2:])
 
+    vehicle.is_collaborating = cbf.constrain_adj
+    vehicle.is_lc_safe = True
+
     # Avoid lane change if adjacent vehicle is close
     if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
         if CBF_DEBUG:
             print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
+        vehicle.is_lc_safe = False
 
     if CBF_DEBUG:
         print("u_safe: ", u_safe)
@@ -689,12 +693,16 @@ def safe_action_mass(
 
     u_safe_ma = np.append(u_safe, u_ma[2:])
 
+    vehicle.is_collaborating = cbf.constrain_adj
+    vehicle.is_lc_safe = True
+
     # Avoid lane change if adjacent vehicle is close
     if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
         if CBF_DEBUG:
             print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
         u_safe[1] = vehicle.steering_control(vehicle.target_lane_index)
+        vehicle.is_lc_safe = False
     # Avoid longitudinal constraint if vehicle is slow and changing lanes
     elif vehicle.hl_action in ["LANE_RIGHT", "LANE_LEFT"] and vehicle.speed < vehicle.STOPPING_SPEED:
         u_safe[0] = v_ll

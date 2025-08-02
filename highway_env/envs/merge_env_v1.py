@@ -14,7 +14,7 @@ from highway_env.road.road import Road, RoadNetwork
 from highway_env.vehicle.controller import ControlledVehicle, MDPVehicle
 from highway_env.road.objects import Obstacle
 from highway_env.vehicle.kinematics import Vehicle
-
+from highway_env.vehicle.safe_controller import MDPLCVehicle
 
 class MergeEnv(AbstractEnv):
     """
@@ -408,15 +408,22 @@ class MergeEnvLCMARL(MergeEnv):
             :param action: the action performed
             :return: the reward of the state-action transition
        """
-        if self.config["agent_reward"] != "srew":
+        if self.config["agent_reward"] not in ["srew", "mrew"] or not isinstance(vehicle, MDPLCVehicle):
             return super()._agent_reward(action=action, vehicle=vehicle)
-        
-        # the optimal reward is 0
-        scaled_speed = utils.lmap(vehicle.speed, self.config["reward_speed_range"], [0, 1])
+
+        is_mrew = self.config["agent_reward"] == "mrew"
+
+        dynamic_range = list(self.config["reward_speed_range"])
+        if vehicle.is_collaborating and is_mrew:
+            dynamic_range[1] = dynamic_range[0] + (dynamic_range[1] - dynamic_range[0]) / 2
+
+        scaled_speed = utils.lmap(vehicle.speed, dynamic_range, [0, 1])
+
         # compute cost for staying on the merging lane
-        if vehicle.lane_index == ("b", "c", 1):
-            Merging_lane_cost = - np.exp(-(vehicle.position[0] - sum(self.ends[:3])) ** 2 / (
-                    10 * self.ends[2]))
+        if vehicle.lane_index == ("b", "c", 1) and (not is_mrew or vehicle.is_lc_safe):
+            Merging_lane_cost = -np.exp(
+                -((vehicle.position[0] - sum(self.ends[:3])) ** 2) / (10 * self.ends[2])
+            )
         else:
             Merging_lane_cost = 0
 
