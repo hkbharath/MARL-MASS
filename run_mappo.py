@@ -214,7 +214,11 @@ def train(args):
     exp_name = config.get("PROJECT_CONFIG", "exp_name", fallback=None)
     if args.exp_name is not None:
         exp_name = args.exp_name
-    wb_config = {"env": env.config, "marl": config._sections, "base_dir": os.path.abspath(output_dir)}
+    wb_config = {
+        "env": env.config,
+        "marl": config._sections,
+        "base_dir": os.path.abspath(output_dir),
+    }
     wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
     mappo = MAPPO(
@@ -273,6 +277,9 @@ def train(args):
             crash_count = sum(crash_count)
             step_time_mu, _ = agg_double_list(step_time)
             episode_len_mu, episode_len_std = agg_double_list(ext_info["steps"])
+            merge_percent_mu, merge_percent_stde = agg_double_list(
+                ext_info["merge_percents"]
+            )
             if wandb:
                 wandb.log(
                     {
@@ -286,6 +293,8 @@ def train(args):
                         "episode": mappo.n_episodes + 1,
                         "episode_len": episode_len_mu,
                         "episode_len_std": episode_len_std,
+                        "merge_percent": merge_percent_mu,
+                        "merge_percent_stde": merge_percent_stde,
                     }
                 )
             # Reset min headway
