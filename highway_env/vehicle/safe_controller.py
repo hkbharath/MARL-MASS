@@ -22,6 +22,8 @@ class MDPLCVehicle(MDPVehicle):
 
     SAFE_DIST: str = "theadway"
 
+    STOPPING_SPEED = 1.6667 # m/s = 6 kmph
+
     def __init__(
         self,
         safety_layer: str = None,
@@ -54,6 +56,9 @@ class MDPLCVehicle(MDPVehicle):
         self.min_headway = self.PERCEPTION_DIST / self.MAX_SPEED  # 6
 
         self.fg_params = None
+
+        self.is_collaborating = False
+        self.is_lc_safe = False
 
     def act(self, action: Union[dict, str] = None) -> None:
         if isinstance(action, str):

@@ -5,9 +5,10 @@ screen -dmS "$sname-0" python run_mappo.py --config $1
 sleep 5
 
 rand_seeds_3=(2000 2024 0)
+rand_seeds_5=(2000 2024 123 1598 0)
 rand_seeds_10=(2000 2024 123 4567 890 2743 1598 3621 490 0)
 
-for seed in "${rand_seeds_3[@]}"; do
+for seed in "${rand_seeds_5[@]}"; do
     sleep 5
     sed -i "s/\bseed = $old_seed\b/seed = $seed/g" $1
     old_seed=$seed
