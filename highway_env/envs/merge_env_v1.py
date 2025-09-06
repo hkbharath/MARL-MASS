@@ -159,6 +159,7 @@ class MergeEnv(AbstractEnv):
                or vehicle.position[0] < 0
 
     def _num_vehicles(self, num_CAV=0)->Tuple[int, int]:
+        num_HDV = 0
         if self.config["traffic_density"] == 1:
             # easy mode: 1-3 CAVs + 1-3 HDVs
             if num_CAV == 0:
@@ -660,7 +661,10 @@ class MergeEnvLCHDV(MergeEnvLCMARL):
             for ve in self.road.vehicles:
                 if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
                     n_rem_merge = n_rem_merge + 1
-            info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100
+            if self.n_merge > 0:
+                info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100.0
+            else:
+                info["merge_percent"] = 100.0
 
         # print(self.steps)
         return obs, reward, terminal, info
