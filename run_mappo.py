@@ -1,4 +1,5 @@
 from marl.mappo import MAPPO
+from marl.mappo_gi import MAPPO_GI
 from common.utils import (
     agg_double_list,
     copy_file_ppo,
@@ -120,6 +121,7 @@ def train(args):
     reward_type = config.get("MODEL_CONFIG", "reward_type")
     TARGET_UPDATE_STEPS = config.getint("MODEL_CONFIG", "TARGET_UPDATE_STEPS")
     TARGET_TAU = config.getfloat("MODEL_CONFIG", "TARGET_TAU")
+    shared_network = config.getboolean("MODEL_CONFIG", "shared_network", fallback=False)
 
     # train configs
     actor_lr = config.getfloat("TRAIN_CONFIG", "actor_lr")
@@ -221,28 +223,52 @@ def train(args):
     }
     wandb = init_wandb(config=wb_config, project_name=project_name, exp_name=exp_name)
 
-    mappo = MAPPO(
-        env=env,
-        memory_capacity=MEMORY_CAPACITY,
-        state_dim=state_dim,
-        action_dim=action_dim,
-        batch_size=BATCH_SIZE,
-        entropy_reg=ENTROPY_REG,
-        roll_out_n_steps=ROLL_OUT_N_STEPS,
-        actor_hidden_size=actor_hidden_size,
-        critic_hidden_size=critic_hidden_size,
-        actor_lr=actor_lr,
-        critic_lr=critic_lr,
-        reward_scale=reward_scale,
-        target_update_steps=TARGET_UPDATE_STEPS,
-        target_tau=TARGET_TAU,
-        reward_gamma=reward_gamma,
-        reward_type=reward_type,
-        max_grad_norm=MAX_GRAD_NORM,
-        test_seeds=test_seeds,
-        episodes_before_train=EPISODES_BEFORE_TRAIN,
-        traffic_density=traffic_density,
-    )
+    if not shared_network:
+        mappo = MAPPO(
+            env=env,
+            memory_capacity=MEMORY_CAPACITY,
+            state_dim=state_dim,
+            action_dim=action_dim,
+            batch_size=BATCH_SIZE,
+            entropy_reg=ENTROPY_REG,
+            roll_out_n_steps=ROLL_OUT_N_STEPS,
+            actor_hidden_size=actor_hidden_size,
+            critic_hidden_size=critic_hidden_size,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            reward_scale=reward_scale,
+            target_update_steps=TARGET_UPDATE_STEPS,
+            target_tau=TARGET_TAU,
+            reward_gamma=reward_gamma,
+            reward_type=reward_type,
+            max_grad_norm=MAX_GRAD_NORM,
+            test_seeds=test_seeds,
+            episodes_before_train=EPISODES_BEFORE_TRAIN,
+            traffic_density=traffic_density,
+        )
+    else:
+        mappo = MAPPO_GI(
+            env=env,
+            memory_capacity=MEMORY_CAPACITY,
+            state_dim=state_dim,
+            action_dim=action_dim,
+            batch_size=BATCH_SIZE,
+            entropy_reg=ENTROPY_REG,
+            roll_out_n_steps=ROLL_OUT_N_STEPS,
+            actor_hidden_size=actor_hidden_size,
+            critic_hidden_size=critic_hidden_size,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            reward_scale=reward_scale,
+            target_update_steps=TARGET_UPDATE_STEPS,
+            target_tau=TARGET_TAU,
+            reward_gamma=reward_gamma,
+            reward_type=reward_type,
+            max_grad_norm=MAX_GRAD_NORM,
+            test_seeds=test_seeds,
+            episodes_before_train=EPISODES_BEFORE_TRAIN,
+            traffic_density=traffic_density,
+        )
 
     # load the model if exist
     mappo.load(model_dir, train_mode=True)
@@ -349,6 +375,7 @@ def evaluate(args):
     reward_type = config.get("MODEL_CONFIG", "reward_type")
     TARGET_UPDATE_STEPS = config.getint("MODEL_CONFIG", "TARGET_UPDATE_STEPS")
     TARGET_TAU = config.getfloat("MODEL_CONFIG", "TARGET_TAU")
+    shared_network = config.getboolean("MODEL_CONFIG", "shared_network", fallback=False)
 
     # train configs
     actor_lr = config.getfloat("TRAIN_CONFIG", "actor_lr")
@@ -411,28 +438,52 @@ def evaluate(args):
     test_seeds = args.evaluation_seeds
     seeds = [int(s) for s in test_seeds.split(",")]
 
-    mappo = MAPPO(
-        env=env,
-        memory_capacity=MEMORY_CAPACITY,
-        state_dim=state_dim,
-        action_dim=action_dim,
-        batch_size=BATCH_SIZE,
-        entropy_reg=ENTROPY_REG,
-        roll_out_n_steps=ROLL_OUT_N_STEPS,
-        actor_hidden_size=actor_hidden_size,
-        critic_hidden_size=critic_hidden_size,
-        actor_lr=actor_lr,
-        critic_lr=critic_lr,
-        reward_scale=reward_scale,
-        target_update_steps=TARGET_UPDATE_STEPS,
-        target_tau=TARGET_TAU,
-        reward_gamma=reward_gamma,
-        reward_type=reward_type,
-        max_grad_norm=MAX_GRAD_NORM,
-        test_seeds=test_seeds,
-        episodes_before_train=EPISODES_BEFORE_TRAIN,
-        traffic_density=traffic_density,
-    )
+    if not shared_network:
+        mappo = MAPPO(
+            env=env,
+            memory_capacity=MEMORY_CAPACITY,
+            state_dim=state_dim,
+            action_dim=action_dim,
+            batch_size=BATCH_SIZE,
+            entropy_reg=ENTROPY_REG,
+            roll_out_n_steps=ROLL_OUT_N_STEPS,
+            actor_hidden_size=actor_hidden_size,
+            critic_hidden_size=critic_hidden_size,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            reward_scale=reward_scale,
+            target_update_steps=TARGET_UPDATE_STEPS,
+            target_tau=TARGET_TAU,
+            reward_gamma=reward_gamma,
+            reward_type=reward_type,
+            max_grad_norm=MAX_GRAD_NORM,
+            test_seeds=test_seeds,
+            episodes_before_train=EPISODES_BEFORE_TRAIN,
+            traffic_density=traffic_density,
+        )
+    else:
+        mappo = MAPPO_GI(
+            env=env,
+            memory_capacity=MEMORY_CAPACITY,
+            state_dim=state_dim,
+            action_dim=action_dim,
+            batch_size=BATCH_SIZE,
+            entropy_reg=ENTROPY_REG,
+            roll_out_n_steps=ROLL_OUT_N_STEPS,
+            actor_hidden_size=actor_hidden_size,
+            critic_hidden_size=critic_hidden_size,
+            actor_lr=actor_lr,
+            critic_lr=critic_lr,
+            reward_scale=reward_scale,
+            target_update_steps=TARGET_UPDATE_STEPS,
+            target_tau=TARGET_TAU,
+            reward_gamma=reward_gamma,
+            reward_type=reward_type,
+            max_grad_norm=MAX_GRAD_NORM,
+            test_seeds=test_seeds,
+            episodes_before_train=EPISODES_BEFORE_TRAIN,
+            traffic_density=traffic_density,
+        )
 
     # load the model if exist
     mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
