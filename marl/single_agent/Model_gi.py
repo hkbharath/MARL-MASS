@@ -211,6 +211,6 @@ class ActorCriticNetwork(nn.Module):
                 logits[action_mask == 0] = th.tensor([-1e8])
                 return F.log_softmax(logits + 1e-8, dim=1)
             else:
-                return logits
+                return F.log_softmax(logits, dim=1)
         else:
             return self.critic_linear(out)
