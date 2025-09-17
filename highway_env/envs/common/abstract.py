@@ -19,6 +19,7 @@ from highway_env.envs.common.idm_controller import idm_controller, generate_acti
 from highway_env.envs.common.mdp_controller import mdp_controller
 from highway_env.road.objects import Obstacle, Landmark
 from highway_env.vehicle.safety.central_layer import safety_supervisor
+from highway_env.vehicle.safety.decentralised_dmc import safety_layer_dmc
 
 Observation = np.ndarray
 DEFAULT_WIDTH: float = 4  # width of the straight lane
@@ -118,7 +119,7 @@ class AbstractEnv(gym.Env):
             "scaling": 5.5,
             "show_trajectories": False,
             "render_agent": True,
-            "safety_guarantee": "priority", # "none", "cbf"
+            "safety_guarantee": "priority", # "none", "cbf-av", "cbf-cav", "dmc"
             "offscreen_rendering": os.environ.get("OFFSCREEN_RENDERING", "0") == "1",
             "manual_control": False,
             "real_time_rendering": False,
@@ -456,8 +457,11 @@ class AbstractEnv(gym.Env):
         self.steps += 1
 
         self.new_action = action
-        if "safety_guarantee" in self.config and self.config["safety_guarantee"] == "priority":
-            self.new_action = safety_supervisor(env=self, actions=action)
+        if "safety_guarantee" in self.config:
+            if self.config["safety_guarantee"] == "priority":
+                self.new_action = safety_supervisor(env=self, actions=action)
+            elif self.config["safety_guarantee"] == "dmc":
+                self.new_action = safety_layer_dmc(env=self, actions=action)
 
         # action is a tuple, e.g., (2, 3, 0, 1)
         self._simulate(self.new_action)
