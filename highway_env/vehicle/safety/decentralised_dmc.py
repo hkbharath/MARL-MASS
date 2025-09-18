@@ -2,7 +2,6 @@ import copy
 import numpy as np
 from queue import PriorityQueue
 from typing import TYPE_CHECKING
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from highway_env.vehicle.behavior import IDMVehicle
 from highway_env.vehicle.controller import MDPVehicle
@@ -16,7 +15,6 @@ if TYPE_CHECKING:
 
 
 def _evaluate_vehicle_action(
-    index,
     vehicle,
     original_vehicle,
     available_actions,
@@ -39,7 +37,9 @@ def _evaluate_vehicle_action(
         vehicle_copy.heading = vehicle.trajectories[t][1]
         for neighbour in neighbours:
             if isinstance(neighbour, Vehicle):
-                env_copy.check_collision(vehicle_copy, neighbour, neighbour.trajectories[t])
+                env_copy.check_collision(
+                    vehicle_copy, neighbour, neighbour.trajectories[t]
+                )
 
         for other in env_copy.road.objects:
             env_copy.check_collision(
@@ -67,7 +67,7 @@ def _evaluate_vehicle_action(
             sel_action = candidate_actions[best_idx]
             break
 
-    return index, sel_action
+    return sel_action
 
 
 def safety_layer_dmc(env: "AbstractEnv", actions):
@@ -90,42 +90,15 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
 
     index = 0
     for vehicle, action in zip(env_copy.controlled_vehicles, actions):
-        priority_number = 0
-        if vehicle.lane_index == ("b", "c", 1):
-            priority_number = -0.5
-            distance_to_merging_end = env.distance_to_merging_end(vehicle)
-            priority_number -= (env.ends[2] - distance_to_merging_end) / env.ends[2]
-            headway_distance = env._compute_headway_distance(vehicle)
-            priority_number += (
-                0.5
-                * np.log(
-                    headway_distance / (env.config["HEADWAY_TIME"] * vehicle.speed)
-                )
-                if vehicle.speed > 0
-                else 0
-            )
-        else:
-            headway_distance = env._compute_headway_distance(vehicle)
-            priority_number += (
-                0.5
-                * np.log(
-                    headway_distance / (env.config["HEADWAY_TIME"] * vehicle.speed)
-                )
-                if vehicle.speed > 0
-                else 0
-            )
-        priority_number += np.random.rand() * 0.001
+        priority_number = -vehicle.position[0]
         q.put((priority_number, [vehicle, action, index]))
         index += 1
-
-    priority_map = {}
 
     # --- Step 1: Propagate all vehicles for n_points steps (serially) ---
     while not q.empty():
         next_item = q.get()
         vehicles_and_actions.append(next_item[1])
         vehicle, action, index = next_item[1]
-        priority_map[vehicle] = len(priority_map)
 
         for t in range(n_points):
             if isinstance(vehicle, IDMVehicle):
@@ -139,73 +112,57 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
 
     # --- Step 2: Update each vehicle's action with respect their neighbours with less priority in parallel ---
     results = actions
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for vehicle_and_action in vehicles_and_actions:
-            vehicle, action, index = vehicle_and_action
-            # vehicle is on the main lane
-            if (
-                vehicle.lane_index == ("a", "b", 0)
-                or vehicle.lane_index == ("b", "c", 0)
-                or vehicle.lane_index == ("c", "d", 0)
-            ):
-                v_fl, v_rl = env_copy.road.surrounding_vehicles(vehicle)
-                if len(env_copy.road.network.side_lanes(vehicle.lane_index)) != 0:
-                    v_fr, v_rr = env_copy.road.surrounding_vehicles(
-                        vehicle, env_copy.road.network.side_lanes(vehicle.lane_index)[0]
-                    )
-                # assume we can observe the ramp on this road
-                elif (
-                    vehicle.lane_index == ("a", "b", 0)
-                    and vehicle.position[0] > env.ends[0]
-                ):
-                    v_fr, v_rr = env_copy.road.surrounding_vehicles(
-                        vehicle, ("k", "b", 0)
-                    )
-                else:
-                    v_fr, v_rr = None, None
 
-            # vehicle is on the ramp
-            else:
-                v_fr, v_rr = env_copy.road.surrounding_vehicles(vehicle)
-                if len(env_copy.road.network.side_lanes(vehicle.lane_index)) != 0:
-                    v_fl, v_rl = env_copy.road.surrounding_vehicles(
-                        vehicle, env_copy.road.network.side_lanes(vehicle.lane_index)[0]
-                    )
-                # assume we can observe the straight road on the ramp
-                elif vehicle.lane_index == ("k", "b", 0):
-                    v_fl, v_rl = env_copy.road.surrounding_vehicles(
-                        vehicle, ("a", "b", 0)
-                    )
-                else:
-                    v_fl, v_rl = None, None
-
-            neighbours = []
-            for vn in [v_fl, v_rl, v_fr, v_rr]:
-                if vn is None or priority_map.get(vn, -10e4) < priority_map[vehicle]:
-                    neighbours.append(vn)
-                else:
-                    neighbours.append(None)
-
-            original_vehicle = env.controlled_vehicles[index]
-            available_actions = env._get_available_actions(original_vehicle, env_copy)
-            futures.append(
-                executor.submit(
-                    _evaluate_vehicle_action,
-                    index,
-                    vehicle,
-                    original_vehicle,
-                    available_actions,
-                    env_copy,
-                    n_points,
-                    neighbours,
+    for vehicle_and_action in vehicles_and_actions:
+        vehicle, action, index = vehicle_and_action
+        # vehicle is on the main lane
+        if (
+            vehicle.lane_index == ("a", "b", 0)
+            or vehicle.lane_index == ("b", "c", 0)
+            or vehicle.lane_index == ("c", "d", 0)
+        ):
+            v_fl, v_rl = env_copy.road.surrounding_vehicles(vehicle)
+            if len(env_copy.road.network.side_lanes(vehicle.lane_index)) != 0:
+                v_fr, v_rr = env_copy.road.surrounding_vehicles(
+                    vehicle, env_copy.road.network.side_lanes(vehicle.lane_index)[0]
                 )
-            )
+            # assume we can observe the ramp on this road
+            elif (
+                vehicle.lane_index == ("a", "b", 0)
+                and vehicle.position[0] > env.ends[0]
+            ):
+                v_fr, v_rr = env_copy.road.surrounding_vehicles(vehicle, ("k", "b", 0))
+            else:
+                v_fr, v_rr = None, None
+
+        # vehicle is on the ramp
+        else:
+            v_fr, v_rr = env_copy.road.surrounding_vehicles(vehicle)
+            if len(env_copy.road.network.side_lanes(vehicle.lane_index)) != 0:
+                v_fl, v_rl = env_copy.road.surrounding_vehicles(
+                    vehicle, env_copy.road.network.side_lanes(vehicle.lane_index)[0]
+                )
+            # assume we can observe the straight road on the ramp
+            elif vehicle.lane_index == ("k", "b", 0):
+                v_fl, v_rl = env_copy.road.surrounding_vehicles(vehicle, ("a", "b", 0))
+            else:
+                v_fl, v_rl = None, None
+
+        neighbours = [v_fl, None, v_fr, None]
+
+        original_vehicle = env.controlled_vehicles[index]
+        available_actions = env._get_available_actions(original_vehicle, env_copy)
+        safe_action = _evaluate_vehicle_action(
+            vehicle,
+            original_vehicle,
+            available_actions,
+            env_copy,
+            n_points,
+            neighbours,
+        )
 
         # Override the action if a new safe action is found
-        for future in as_completed(futures):
-            idx, new_action = future.result()
-            if new_action is not None:
-                results[idx] = new_action
+        if safe_action is not None:
+            results[index] = safe_action
 
     return tuple(results)
