@@ -123,7 +123,7 @@ class AbstractEnv(gym.Env):
             "offscreen_rendering": os.environ.get("OFFSCREEN_RENDERING", "0") == "1",
             "manual_control": False,
             "real_time_rendering": False,
-            "n_step": 8,  # do n step prediction
+            "n_step": 6,  # do n step prediction
             "seed": 0,
             "action_masking": True,
             "mixed_traffic": True, # Mixed traffic configuration by default

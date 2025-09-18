@@ -148,7 +148,7 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
             else:
                 v_fl, v_rl = None, None
 
-        neighbours = [v_fl, None, v_fr, None]
+        neighbours = [v_fl, v_rr, v_fr, v_rl]
 
         original_vehicle = env.controlled_vehicles[index]
         available_actions = env._get_available_actions(original_vehicle, env_copy)
