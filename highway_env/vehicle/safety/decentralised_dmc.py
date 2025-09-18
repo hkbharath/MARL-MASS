@@ -18,7 +18,8 @@ if TYPE_CHECKING:
 def _evaluate_vehicle_action(
     index,
     vehicle,
-    env: "AbstractEnv",
+    original_vehicle,
+    available_actions,
     env_copy: "AbstractEnv",
     n_points,
     neighbours,
@@ -30,38 +31,35 @@ def _evaluate_vehicle_action(
     """
     sel_action = None
 
-    available_actions = env._get_available_actions(vehicle, env_copy)
-
     vehicle_copy = copy.deepcopy(vehicle)
+    vehicle_copy.crashed = False
     for t in range(n_points):
         # check the collision for each point trajectory for each neighbour
-        vehicle_copy.position = vehicle.trajectories[t]
+        vehicle_copy.position = vehicle.trajectories[t][0]
         vehicle_copy.heading = vehicle.trajectories[t][1]
         for neighbour in neighbours:
             if isinstance(neighbour, Vehicle):
-                env.check_collision(vehicle_copy, neighbour, neighbour.trajectories[t])
+                env_copy.check_collision(vehicle_copy, neighbour, neighbour.trajectories[t])
 
         for other in env_copy.road.objects:
-            env.check_collision(
+            env_copy.check_collision(
                 vehicle_copy, other, [other.position, other.heading, other.speed]
             )
 
         # Check for crash in the propagated trajectory
-        crashed = vehicle.crashed
+        crashed = vehicle_copy.crashed
         if crashed:
             safety_rooms = []
-            updated_vehicles = []
             candidate_actions = []
             # Try all available actions to find the safest
             for a in available_actions:
-                vehicle_copy = copy.deepcopy(env.controlled_vehicles[index])
+                vehicle_orig_copy = copy.deepcopy(original_vehicle)
                 # Evaluate safety room at each time step
                 safety_room = 0
                 for t in range(n_points):
-                    safety_room += env.check_safety_room(
-                        vehicle_copy, a, neighbours, env_copy, t
+                    safety_room += env_copy.check_safety_room(
+                        vehicle_orig_copy, a, neighbours, env_copy, t
                     )
-                updated_vehicles.append(vehicle_copy)
                 candidate_actions.append(a)
                 safety_rooms.append(safety_room)
             # Pick the action with the largest safety room
@@ -184,24 +182,30 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
 
             neighbours = []
             for vn in [v_fl, v_rl, v_fr, v_rr]:
-                if vn is not None and priority_map.get(vn, -1) < priority_map[vehicle]:
+                if vn is None or priority_map.get(vn, -10e4) < priority_map[vehicle]:
                     neighbours.append(vn)
+                else:
+                    neighbours.append(None)
 
+            original_vehicle = env.controlled_vehicles[index]
+            available_actions = env._get_available_actions(original_vehicle, env_copy)
             futures.append(
                 executor.submit(
                     _evaluate_vehicle_action,
                     index,
                     vehicle,
-                    env,
+                    original_vehicle,
+                    available_actions,
                     env_copy,
                     n_points,
-                    actions,
                     neighbours,
                 )
             )
 
+        # Override the action if a new safe action is found
         for future in as_completed(futures):
             idx, new_action = future.result()
-            results[idx] = new_action
+            if new_action is not None:
+                results[idx] = new_action
 
     return tuple(results)

@@ -230,7 +230,7 @@ class MDPLCVehicle(MDPVehicle):
         self, dt: float
     ) -> Tuple[Dict, Union[Dict, None], Union[Dict, None]]:
         if (
-            self.safety_layer in ["none", "priority"]
+            self.safety_layer in ["none", "priority", "dmc"]
             or self.lateral_ctrl not in ["steer_vel", "steer"]
             or "cbf-" not in self.safety_layer
             or self.fg_params is None
