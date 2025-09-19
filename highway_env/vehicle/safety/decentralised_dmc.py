@@ -28,26 +28,25 @@ def _evaluate_vehicle_action(
     Assumes all vehicles have already been propagated for n_points steps.
     """
     sel_action = None
-
-    vehicle_copy = copy.deepcopy(vehicle)
-    vehicle_copy.crashed = False
+    
+    vehicle.crashed = False
     for t in range(n_points):
         # check the collision for each point trajectory for each neighbour
-        vehicle_copy.position = vehicle.trajectories[t][0]
-        vehicle_copy.heading = vehicle.trajectories[t][1]
+        vehicle.position = vehicle.trajectories[t][0]
+        vehicle.heading = vehicle.trajectories[t][1]
         for neighbour in neighbours:
             if isinstance(neighbour, Vehicle):
                 env_copy.check_collision(
-                    vehicle_copy, neighbour, neighbour.trajectories[t]
+                    vehicle, neighbour, neighbour.trajectories[t]
                 )
 
         for other in env_copy.road.objects:
             env_copy.check_collision(
-                vehicle_copy, other, [other.position, other.heading, other.speed]
+                vehicle, other, [other.position, other.heading, other.speed]
             )
 
         # Check for crash in the propagated trajectory
-        crashed = vehicle_copy.crashed
+        crashed = vehicle.crashed
         if crashed:
             safety_rooms = []
             candidate_actions = []
@@ -90,7 +89,32 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
 
     index = 0
     for vehicle, action in zip(env_copy.controlled_vehicles, actions):
-        priority_number = -vehicle.position[0]
+        # priority_number = -vehicle.position[0]
+        priority_number = 0
+        if vehicle.lane_index == ("b", "c", 1):
+            priority_number = -0.5
+            distance_to_merging_end = env.distance_to_merging_end(vehicle)
+            priority_number -= (env.ends[2] - distance_to_merging_end) / env.ends[2]
+            headway_distance = env._compute_headway_distance(vehicle)
+            priority_number += (
+                0.5
+                * np.log(
+                    headway_distance / (env.config["HEADWAY_TIME"] * vehicle.speed)
+                )
+                if vehicle.speed > 0
+                else 0
+            )
+        else:
+            headway_distance = env._compute_headway_distance(vehicle)
+            priority_number += (
+                0.5
+                * np.log(
+                    headway_distance / (env.config["HEADWAY_TIME"] * vehicle.speed)
+                )
+                if vehicle.speed > 0
+                else 0
+            )
+        priority_number += np.random.rand() * 0.001
         q.put((priority_number, [vehicle, action, index]))
         index += 1
 
