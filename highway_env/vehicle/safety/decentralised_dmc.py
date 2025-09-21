@@ -28,7 +28,7 @@ def _evaluate_vehicle_action(
     Assumes all vehicles have already been propagated for n_points steps.
     """
     sel_action = None
-    
+
     vehicle.crashed = False
     for t in range(n_points):
         # check the collision for each point trajectory for each neighbour
@@ -36,9 +36,7 @@ def _evaluate_vehicle_action(
         vehicle.heading = vehicle.trajectories[t][1]
         for neighbour in neighbours:
             if isinstance(neighbour, Vehicle):
-                env_copy.check_collision(
-                    vehicle, neighbour, neighbour.trajectories[t]
-                )
+                env_copy.check_collision(vehicle, neighbour, neighbour.trajectories[t])
 
         for other in env_copy.road.objects:
             env_copy.check_collision(
@@ -118,23 +116,26 @@ def safety_layer_dmc(env: "AbstractEnv", actions):
         q.put((priority_number, [vehicle, action, index]))
         index += 1
 
-    # --- Step 1: Propagate all vehicles for n_points steps (serially) ---
+    # --- Step 1: Propagate all controlled vehicles for n_points steps ---
     while not q.empty():
         next_item = q.get()
         vehicles_and_actions.append(next_item[1])
         vehicle, action, index = next_item[1]
 
         for t in range(n_points):
-            if isinstance(vehicle, IDMVehicle):
-                if t == 0:
-                    a = generate_actions(vehicle, env_copy)
-                    idm_controller(vehicle, env_copy, a)
-                else:
-                    idm_controller(vehicle, env_copy, vehicle.action)
-            elif isinstance(vehicle, MDPVehicle):
+            if isinstance(vehicle, MDPVehicle):
                 mdp_controller(vehicle, env_copy, actions[index])
 
-    # --- Step 2: Update each vehicle's action with respect their neighbours with less priority in parallel ---
+    # --- Step 1a: Propogate all HDVs for n_steps
+    for other in env_copy.road.vehicles:
+        if isinstance(other, IDMVehicle):
+            for t in range(n_points):
+                if t == 0:
+                    a = generate_actions(other, env_copy)
+                    idm_controller(other, env_copy, a)
+                else:
+                    idm_controller(other, env_copy, other.action)
+    # --- Step 2: Update each vehicle's action with respect their neighbours with less priority ---
     results = actions
 
     for vehicle_and_action in vehicles_and_actions:
