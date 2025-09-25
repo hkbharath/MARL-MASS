@@ -2,8 +2,9 @@
 
 model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_01_59" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_09" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_14" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_19" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_24")
 
-sname==$(echo "$1" | awk -F'/' '{print $NF}')
+sname=$(echo "$1" | awk -F'/' '{print $NF}')
 old_seed=0
+echo "Seed: $old_seed, Model:${model_dirs[0]}"
 screen -dmS "$sname-0" python run_mappo.py --config $1 --model-dir ${model_dirs[0]} --checkpoint $2
 # sleep 5
 
