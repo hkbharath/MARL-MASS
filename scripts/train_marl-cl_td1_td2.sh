@@ -4,7 +4,7 @@ model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_01_59" 
 
 sname==$(echo "$1" | awk -F'/' '{print $NF}')
 old_seed=0
-screen -dmS "$sname-0" python run_mappo.py --config $1 --model-dir ${model_dirs[0]}
+screen -dmS "$sname-0" python run_mappo.py --config $1 --model-dir ${model_dirs[0]} --checkpoint $2
 # sleep 5
 
 rand_seeds_3=(2000 2024 0)
@@ -22,5 +22,5 @@ for i in "${!rand_seeds_5[@]}"; do
     if [[ "$seed" -eq 0 ]]; then
         break
     fi
-    screen -dmS "$sname-$seed" python run_mappo.py --config $1 --model-dir $model
+    screen -dmS "$sname-$seed" python run_mappo.py --config $1 --model-dir $model --checkpoint $2
 done
