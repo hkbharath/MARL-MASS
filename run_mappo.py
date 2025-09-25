@@ -52,7 +52,7 @@ def parse_args():
         "--model-dir",
         type=str,
         required=False,
-        default="",
+        default=None,
         help="pretrained model path",
     )
     parser.add_argument(
@@ -104,8 +104,10 @@ def train(args):
     dirs = init_dir(output_dir)
     copy_file_ppo(dirs["configs"], configs=config_file)
 
-    if os.path.exists(args.model_dir):
-        model_dir = args.model_dir
+    if args.model_dir is not None:
+        model_dir = args.model_dir + "/models/"
+        if not os.path.exists(model_dir):
+            raise Exception("Sorry, no pretrained models")
     else:
         model_dir = dirs["models"]
 
@@ -216,6 +218,10 @@ def train(args):
     exp_name = config.get("PROJECT_CONFIG", "exp_name", fallback=None)
     if args.exp_name is not None:
         exp_name = args.exp_name
+
+    if args.checkpoint is not None:
+        exp_name = exp_name + ":cp-{:d}".format(args.checkpoint)
+
     wb_config = {
         "env": env.config,
         "marl": config._sections,
@@ -272,7 +278,7 @@ def train(args):
         )
 
     # load the model if exist
-    mappo.load(model_dir, train_mode=True)
+    mappo.load(model_dir, train_mode=True, global_step=args.checkpoint)
     env.seed = env.config["seed"]
     env.unwrapped.seed = env.config["seed"]
     eval_rewards = []
