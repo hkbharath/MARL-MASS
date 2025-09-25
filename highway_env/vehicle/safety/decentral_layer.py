@@ -57,17 +57,6 @@ def is_approaching_same_lane(ve: "ControlledVehicle", vl: "ControlledVehicle"):
     return ret
 
 
-# Define a function to check if the vehicle is close to lane edge
-def is_close_to_lane_edge(vehicle: "ControlledVehicle") -> bool:
-    lane_pos = vehicle.lane.local_coordinates(vehicle.position)
-    edge_threshold = 1.5  # meters
-
-    # Check if the vehicle is close to the left or right edge of the lane
-    if abs(lane_pos[1]) > edge_threshold:
-        return True
-    return False
-
-
 def simplified_control(
     s: dict, action: dict, vl: float, dt: float
 ) -> Tuple[float, float]:
@@ -185,8 +174,8 @@ def multi_agent_state(
                 )
             s_oa = veh.state_hist[-2]
 
-            # As ego vehicle is constrained with respect to this HDV,
-            # consider a digital twin at 0.5 s headway away from
+            # As ego vehicle is constrained with respect to this HDV, 
+            # consider a digital twin at 0.5 s headway away from 
             # the current position of the ego vehicle.
             s_oa["x"] = s_oa["x"] + 0.5 * vehicle.velocity[0]
             cbf.constrain_adj = True
@@ -737,9 +726,7 @@ def safe_action_mass(
     vehicle.is_lc_safe = True
 
     # Avoid lane change if adjacent vehicle is close
-    if is_close_to_lane_edge(vehicle=vehicle) and (
-        not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma)
-    ):
+    if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
         if CBF_DEBUG:
             print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
