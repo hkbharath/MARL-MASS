@@ -13,7 +13,7 @@ from highway_env.road.objects import Obstacle
 if TYPE_CHECKING:
     from highway_env.envs.common.abstract import AbstractEnv
 
-def safety_supervisor(env:"AbstractEnv", actions):
+def safety_supervisor(env:"AbstractEnv", actions, is_priority = True):
     """"
     implementation of safety supervisor
     """
@@ -22,8 +22,6 @@ def safety_supervisor(env:"AbstractEnv", actions):
     env_copy = copy.deepcopy(env)
     n_points = int(env.config["simulation_frequency"] // env.config["policy_frequency"]) * env.config[
         "n_step"]
-    """compute the priority of controlled vehicles"""
-    q = PriorityQueue()
     vehicles_and_actions = []  # original vehicle and action
 
     # reset the trajectories
@@ -31,37 +29,42 @@ def safety_supervisor(env:"AbstractEnv", actions):
         v.trajectories = []
 
     index = 0
-    for vehicle, action in zip(env_copy.controlled_vehicles, actions):
-        """ 1: ramp > straight road
-            2: distance to the merging end
-            2: small safety room > large safety room
-        """
-        priority_number = 0
+    if is_priority:
+        """compute the priority of controlled vehicles"""
+        q = PriorityQueue()
+        for vehicle, action in zip(env_copy.controlled_vehicles, actions):
+            """ 1: ramp > straight road
+                2: distance to the merging end
+                2: small safety room > large safety room
+            """
+            priority_number = 0
 
-        # v_fl, v_rl = env_copy.road.neighbour_vehicles(vehicle)
-        # print(env_copy.road.network.next_lane(vehicle.lane_index, position=vehicle.position))
+            # v_fl, v_rl = env_copy.road.neighbour_vehicles(vehicle)
+            # print(env_copy.road.network.next_lane(vehicle.lane_index, position=vehicle.position))
 
-        # vehicle is on the ramp or not
-        if vehicle.lane_index == ("b", "c", 1):
-            priority_number = -0.5
-            distance_to_merging_end = env.distance_to_merging_end(vehicle)
-            priority_number -= (env.ends[2] - distance_to_merging_end) / env.ends[2]
-            headway_distance = env._compute_headway_distance(vehicle)
-            priority_number += 0.5 * np.log(headway_distance
-                                        / (env.config["HEADWAY_TIME"] * vehicle.speed)) if vehicle.speed > 0 else 0
-        else:
-            headway_distance = env._compute_headway_distance(vehicle)
-            priority_number += 0.5 * np.log(headway_distance
-                                        / (env.config["HEADWAY_TIME"] * vehicle.speed)) if vehicle.speed > 0 else 0
+            # vehicle is on the ramp or not
+            if vehicle.lane_index == ("b", "c", 1):
+                priority_number = -0.5
+                distance_to_merging_end = env.distance_to_merging_end(vehicle)
+                priority_number -= (env.ends[2] - distance_to_merging_end) / env.ends[2]
+                headway_distance = env._compute_headway_distance(vehicle)
+                priority_number += 0.5 * np.log(headway_distance
+                                            / (env.config["HEADWAY_TIME"] * vehicle.speed)) if vehicle.speed > 0 else 0
+            else:
+                headway_distance = env._compute_headway_distance(vehicle)
+                priority_number += 0.5 * np.log(headway_distance
+                                            / (env.config["HEADWAY_TIME"] * vehicle.speed)) if vehicle.speed > 0 else 0
 
-        priority_number += np.random.rand() * 0.001  # to avoid the same priority number for two vehicles
-        q.put((priority_number, [vehicle, action, index]))
-        index += 1
+            priority_number += np.random.rand() * 0.001  # to avoid the same priority number for two vehicles
+            q.put((priority_number, [vehicle, action, index]))
+            index += 1
 
-    # q is ordered from large to small numbers
-    while not q.empty():
-        next_item = q.get()
-        vehicles_and_actions.append(next_item[1])
+        # q is ordered from large to small numbers
+        while not q.empty():
+            next_item = q.get()
+            vehicles_and_actions.append(next_item[1])
+    else:
+        vehicles_and_actions = list(zip(env_copy.controlled_vehicles, actions, range(len(actions))))
 
     for i, vehicle_and_action in enumerate(vehicles_and_actions):
         first_change = True  # only do the first change

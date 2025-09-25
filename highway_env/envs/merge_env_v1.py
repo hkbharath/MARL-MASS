@@ -26,6 +26,7 @@ class MergeEnv(AbstractEnv):
     """
     n_a = 5
     n_s = 25
+    n_merge = 0
 
     @classmethod
     def default_config(cls) -> dict:
@@ -143,6 +144,24 @@ class MergeEnv(AbstractEnv):
         self._regional_reward()
         info["regional_rewards"] = tuple(vehicle.regional_reward for vehicle in self.controlled_vehicles)
 
+        traffic_speed = 0
+        for v in self.road.vehicles:
+            traffic_speed += v.speed
+        traffic_speed = traffic_speed / len(self.road.vehicles)
+        info["traffic_speed"] = traffic_speed
+        info["min_headway"] = self._compute_min_time_headway()
+
+        if done:
+            # Evaluate percentage of vehicle merged into the highway steam.
+            n_rem_merge = 0
+            for ve in self.road.vehicles:
+                if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
+                    n_rem_merge = n_rem_merge + 1
+            if self.n_merge > 0:       
+                info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100
+            else:
+                info["merge_percent"] = 100.0
+
         obs = np.asarray(obs).reshape((len(obs), -1))
         return obs, reward, done, info
 
@@ -240,6 +259,7 @@ class MergeEnv(AbstractEnv):
         
 
     def _record_vehicle_count(self, n_merge:int=0, n_highway:int=0) -> None:
+        self.n_merge = n_merge
         return
 
     def _make_vehicles(self, num_CAV=4, num_HDV=3) -> None:
@@ -350,6 +370,21 @@ class MergeEnv(AbstractEnv):
         self.test_num = len(test_seeds)
         self.test_seeds = test_seeds
 
+    def _compute_min_time_headway(self):
+        min_headway = float('inf')
+        for veh in self.controlled_vehicles:
+            headway_distance = super()._compute_headway_distance(veh)
+            for ob in self.road.objects:
+                if (abs(ob.position[1] - veh.position[1]) <= 2) and (
+                    ob.position[0] > veh.position[0]
+                ):
+                    hd = ob.position[0] - veh.position[0]
+                    if hd < headway_distance:
+                        headway_distance = hd
+            headway_distance = headway_distance - veh.LENGTH
+            min_headway = min(min_headway, headway_distance/(veh.velocity[0] if veh.velocity[0] > 1 else 1))
+        return min_headway
+
 
 class MergeEnvMARL(MergeEnv):
     @classmethod
@@ -376,7 +411,6 @@ class MergeEnvLCMARL(MergeEnv):
 
     n_a = 5
     n_s = 30
-    n_merge = 0
     
     @classmethod
     def default_config(cls) -> dict:
@@ -459,11 +493,6 @@ class MergeEnvLCMARL(MergeEnv):
             return num_CAV, num_HDV
 
         return super()._num_vehicles(num_CAV)
-
-        
-    def _record_vehicle_count(self, n_merge:int=0, n_highway:int=0) -> None:
-        self.n_merge = n_merge
-        return
    
     def _make_ego_vehicle(self, road:Road, position:np.ndarray, speed:float, veh_id:int=0):
         safety_layer = self.config["safety_guarantee"]
@@ -483,26 +512,7 @@ class MergeEnvLCMARL(MergeEnv):
                                     speed=speed)
         hdv_v.id = veh_id
         return hdv_v
-    
-    def step(self, action):
-        traffic_speed = 0
 
-        obs, reward, done, info =  super().step(action)
-        for v in self.road.vehicles:
-            traffic_speed += v.speed
-        traffic_speed = traffic_speed / len(self.road.vehicles)
-        info["traffic_speed"] = traffic_speed
-        info["min_headway"] = self._compute_min_time_headway()
-
-        if done:
-            # Evaluate percentage of vehicle merged into the highway steam.
-            n_rem_merge = 0
-            for ve in self.road.vehicles:
-                if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
-                    n_rem_merge = n_rem_merge + 1
-            info["merge_percent"] = (self.n_merge - n_rem_merge)/self.n_merge * 100
-        
-        return obs, reward, done, info
     
     def _reward(self, action: int) -> float:
         # Cooperative multi-agent reward
@@ -512,21 +522,7 @@ class MergeEnvLCMARL(MergeEnv):
                / len(self.road.vehicles)
         return sum(self._agent_reward(action, vehicle) for vehicle in self.controlled_vehicles) \
                / len(self.controlled_vehicles)
-    
-    def _compute_min_time_headway(self):
-        min_headway = float('inf')
-        for veh in self.controlled_vehicles:
-            headway_distance = super()._compute_headway_distance(veh)
-            for ob in self.road.objects:
-                if (abs(ob.position[1] - veh.position[1]) <= 2) and (
-                    ob.position[0] > veh.position[0]
-                ):
-                    hd = ob.position[0] - veh.position[0]
-                    if hd < headway_distance:
-                        headway_distance = hd
-            headway_distance = headway_distance - veh.LENGTH
-            min_headway = min(min_headway, headway_distance/(veh.velocity[0] if veh.velocity[0] > 1 else 1))
-        return min_headway
+
 
 class MergeEnvMARLSteerVel(MergeEnvLCMARL):
     n_a = 5
