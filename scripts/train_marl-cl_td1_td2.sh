@@ -1,6 +1,11 @@
 #!/bin/bash
 
-model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_01_59" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_09" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_14" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_19" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_24")
+
+# Unsafe MARL
+model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_25_17_01_34" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_25_17_01_45" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_25_17_01_50" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_25_17_01_55" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_25_17_02_00")
+
+# MARL-MASS
+# model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_01_59" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_09" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_14" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_19" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Aug_24_00_02_24")
 
 sname=$(echo "$1" | awk -F'/' '{print $NF}')
 old_seed=0
