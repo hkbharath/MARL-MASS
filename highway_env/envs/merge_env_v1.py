@@ -154,7 +154,7 @@ class MergeEnv(AbstractEnv):
         if done:
             # Evaluate percentage of vehicle merged into the highway steam.
             n_rem_merge = 0
-            for ve in self.road.vehicles:
+            for ve in self.controlled_vehicles:
                 if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
                     n_rem_merge = n_rem_merge + 1
             if self.n_merge > 0:       
@@ -654,7 +654,7 @@ class MergeEnvLCHDV(MergeEnvLCMARL):
         if terminal:
             # Evaluate percentage of vehicle merged into the highway steam.
             n_rem_merge = 0
-            for ve in self.controlled_vehicles:
+            for ve in self.road.vehicles:
                 if ve.lane_index in [("b", "c", 1), ("k", "b", 0), ("j", "k", 0)]:
                     n_rem_merge = n_rem_merge + 1
             if self.n_merge > 0:
