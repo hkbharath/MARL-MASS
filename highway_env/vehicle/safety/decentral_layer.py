@@ -174,8 +174,8 @@ def multi_agent_state(
                 )
             s_oa = veh.state_hist[-2]
 
-            # As ego vehicle is constrained with respect to this HDV, 
-            # consider a digital twin at 0.5 s headway away from 
+            # As ego vehicle is constrained with respect to this HDV,
+            # consider a digital twin at 0.5 s headway away from
             # the current position of the ego vehicle.
             s_oa["x"] = s_oa["x"] + 0.5 * vehicle.velocity[0]
             cbf.constrain_adj = True
@@ -725,8 +725,18 @@ def safe_action_mass(
     vehicle.is_collaborating = cbf.constrain_adj
     vehicle.is_lc_safe = True
 
+    vcl = vehicle.get_corner(dir="L")
+    vcr = vehicle.get_corner(dir="R")
+    can_abort_lc = True
+
+    if vcl is not None:
+        can_abort_lc = can_abort_lc and vehicle.lane.on_lane(position=vcl)
+
+    if vcr is not None:
+        can_abort_lc = can_abort_lc and vehicle.lane.on_lane(position=vcr)
+
     # Avoid lane change if adjacent vehicle is close
-    if not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
+    if can_abort_lc and not cbf.is_lc_allowed(f=f, g=g, x=x, u=u_safe_ma):
         if CBF_DEBUG:
             print("Avoiding lane change")
         vehicle.target_lane_index = vehicle.lane_index
