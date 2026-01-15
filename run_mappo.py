@@ -334,17 +334,6 @@ def train(args):
             mappo.train_min_headway = float("inf")
             # save the model
             model_path = mappo.save(dirs["models"], mappo.n_episodes + 1)
-            if wandb:
-                artifact_name = "checkpoint-{:d}.pt".format(mappo.n_episodes + 1)
-                wb_artifact = wandb.Artifact(
-                    name=artifact_name,
-                    type="model",
-                    description="model checkpoint at episode {:d}".format(
-                        mappo.n_episodes + 1
-                    ),
-                )
-                wb_artifact.add_file(local_path=model_path)
-                wandb.log_artifact(wb_artifact)
 
 
     # save the model
