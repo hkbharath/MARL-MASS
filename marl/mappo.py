@@ -414,6 +414,7 @@ class MAPPO:
                  'model_state_dict': self.actor.state_dict(),
                  'optimizer_state_dict': self.actor_optimizer.state_dict()},
                 file_path)
+        return file_path
 
 
 class MAPPOControlEval(MAPPO):
