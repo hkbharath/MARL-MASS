@@ -24,7 +24,7 @@ model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_36" 
 # MARL-CS # 18400
 checkpoint=18400
 # model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_01_11_02_31" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_01_11_02_36" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_01_11_02_41" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_01_11_02_46" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_01_11_02_51")
-model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_46" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_41" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_36" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_31" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_26")
+model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_26" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_31" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_36" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_41" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_46")
 
 # MARL-CMC - shared # 9000
 # checkpoint=9000
@@ -41,7 +41,7 @@ model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_47_46" 
 # MARL-MASS - shared - cal # 20000
 checkpoint=20000
 # model_dirs=("/home/jovyan/work/cbf-cav-mixed-cal/MARL-MASS/results/Oct_01_12_41_42" "/home/jovyan/work/cbf-cav-mixed-cal/MARL-MASS/results/Oct_01_12_41_47" "/home/jovyan/work/cbf-cav-mixed-cal/MARL-MASS/results/Oct_01_12_41_52" "/home/jovyan/work/cbf-cav-mixed-cal/MARL-MASS/results/Oct_01_12_41_57" "/home/jovyan/work/cbf-cav-mixed-cal/MARL-MASS/results/Oct_01_12_42_02")
-model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_56" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_51" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_46" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_41" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_36")
+model_dirs=("/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_36" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_41" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_46" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_51" "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_44_56")
 
 sname=$(echo "$1" | awk -F'/' '{print $NF}')
 old_seed=0
