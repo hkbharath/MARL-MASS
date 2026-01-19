@@ -33,59 +33,80 @@
 
 # python run_mappo.py --opt eval --model-dir "./results/Sep_21_08_38_21" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/9j8nwh3o/ --checkpoint 18000 
 
+# TD 2 - Curriculum Learning
+python run_mappo.py --opt eval --model-dir "./results/Jan_15_17_47_26" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-cl_td1:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/dzkzd3n8/ --checkpoint 18400 & 
+
+python run_mappo.py --opt eval --model-dir "./results/Jan_15_17_47_31" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-cl_td1:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/we4pmsg3/ --checkpoint 18400 & 
+
+python run_mappo.py --opt eval --model-dir "./results/Jan_15_17_47_36" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-cl_td1:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/id607fne/ --checkpoint 18400 & 
+
+python run_mappo.py --opt eval --model-dir "./results/Jan_15_17_47_41" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-cl_td1:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/iwptog99/ --checkpoint 18400 & 
+
+python run_mappo.py --opt eval --model-dir "./results/Jan_15_17_47_46" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-cl_td1:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/zd2a9tqh/ --checkpoint 18400 & 
+
 # # TD 3 - Curriculum Learning
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_20" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/slhtxve6/ --checkpoint 1400 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_20" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/slhtxve6/ --checkpoint 1400 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_25" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/dd0zc0o2/ --checkpoint 1400 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_25" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/dd0zc0o2/ --checkpoint 1400 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_30" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/4derwcc6/ --checkpoint 1400 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_30" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/4derwcc6/ --checkpoint 1400 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_35" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/drydevmn/ --checkpoint 1400 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_35" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/drydevmn/ --checkpoint 1400 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_40" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/1w79u3nq/ --checkpoint 1400 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_30_40" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/1w79u3nq/ --checkpoint 1400 &
 
-# TD1 - Shared
-python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_29 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/f7jb3kyy --checkpoint 5200 & 
+########### New trainings
+python run_mappo.py --opt eval --model-dir "./results/Jan_17_17_57_16" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/dl0w7zsy --checkpoint 1200 & 
 
-python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_24 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/6op4e8ts --checkpoint 5200 & 
+python run_mappo.py --opt eval --model-dir "./results/Jan_17_17_57_21" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/mb8koa0w --checkpoint 1200 & 
 
-python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_19 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/raj2jr0b --checkpoint 5200 & 
+python run_mappo.py --opt eval --model-dir "./results/Jan_17_17_57_26" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/vq0nhpa9 --checkpoint 1200 & 
 
-python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_14 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/87kvb3tf --checkpoint 5200 & 
+python run_mappo.py --opt eval --model-dir "./results/Jan_17_17_57_31" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/pih20jef --checkpoint 1200 & 
 
-python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_04 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/5s6nbqhh --checkpoint 5200 & 
+python run_mappo.py --opt eval --model-dir "./results/Jan_17_17_57_36" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-cl_td1_td2:cp-18400 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/2wx1u0uw --checkpoint 1200 & 
 
-# TD 2 - Shared
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_55" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/k9uw8nj2 --checkpoint 11400 & 
+# # TD1 - Shared
+# python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_29 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/f7jb3kyy --checkpoint 5200 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_50" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/g1wkb9e5 --checkpoint 11400 & 
+# python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_24 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/6op4e8ts --checkpoint 5200 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_45" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/q5bh9giq --checkpoint 11400 & 
+# python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_19 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/raj2jr0b --checkpoint 5200 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_40" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/155jh8cm --checkpoint 11400 & 
+# python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_14 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/87kvb3tf --checkpoint 5200 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_30" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/rpbaz1ag --checkpoint 11400 & 
+# python run_mappo.py --opt eval --model-dir ./results/Sep_29_15_56_04 --exp-name marl_cav-heading-t_headway-priority6-mixed-td1-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/5s6nbqhh --checkpoint 5200 & 
+
+# # TD 2 - Shared
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_55" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/k9uw8nj2 --checkpoint 11400 & 
+
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_50" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/g1wkb9e5 --checkpoint 11400 & 
+
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_45" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/q5bh9giq --checkpoint 11400 & 
+
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_40" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/155jh8cm --checkpoint 11400 & 
+
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_53_30" --exp-name marl_cav-heading-t_headway-priority6-mixed-td2-shared --src-url https://wandb.ai/ai-driver/Safe_colab_MARL/runs/rpbaz1ag --checkpoint 11400 & 
 
 
+# # TD 3 - Shared
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_41" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/wrs0o8hj/ --checkpoint 10800 & 
 
-# TD 3 - Shared
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_41" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/wrs0o8hj/ --checkpoint 10800 & 
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_36" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/lvzb4aqw/ --checkpoint 10800 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_36" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/lvzb4aqw/ --checkpoint 10800 & 
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_31" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/q2nfsxgs/ --checkpoint 10800 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_31" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/q2nfsxgs/ --checkpoint 10800 & 
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_26" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/7pm3mlnc/ --checkpoint 10800 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_26" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/7pm3mlnc/ --checkpoint 10800 & 
+# python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_17" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/zzxzhk9c/ --checkpoint 10800 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Sep_29_15_52_17" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/zzxzhk9c/ --checkpoint 10800 & 
+# # # TD 3 - Shared - Curriculum Learning
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_11_03" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/e8cairlh/ --checkpoint 20000 & 
 
-# # TD 3 - Shared - Curriculum Learning
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_11_03" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/e8cairlh/ --checkpoint 20000 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_58" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/rgv208m8/ --checkpoint 20000 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_58" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/rgv208m8/ --checkpoint 20000 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_53" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ql94jzrn/ --checkpoint 20000 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_53" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ql94jzrn/ --checkpoint 20000 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_48" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/qhj65z5s/ --checkpoint 20000 & 
 
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_48" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/qhj65z5s/ --checkpoint 20000 & 
-
-python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_43" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/2c3eyfbs/ --checkpoint 20000 & 
+# python run_mappo.py --opt eval --model-dir "./results/Oct_02_10_10_43" --exp-name marl_cav-heading-t_headway-priority6-mixed-td3-shared-cl_td1_td2:cp-9000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/2c3eyfbs/ --checkpoint 20000 & 
