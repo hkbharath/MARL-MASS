@@ -39,7 +39,7 @@ def parse_args():
         help="experiment base dir",
     )
     parser.add_argument(
-        "--option", type=str, required=False, default="train", help="train or evaluate"
+        "--option", type=str, required=False, default="train", help="train, evaluate, or debug_tl"
     )
     parser.add_argument(
         "--config",
@@ -443,7 +443,13 @@ def evaluate(args):
     assert env.T % ROLL_OUT_N_STEPS == 0
     state_dim = env.n_s
     action_dim = env.n_a
-    test_seeds = args.evaluation_seeds
+
+    if args.option == "debug_tl":
+        test_seeds = ",".join([str(i) for i in range(0, 600, 20)])
+        is_train = True
+    else:
+        test_seeds = args.evaluation_seeds
+        is_train = False
     seeds = [int(s) for s in test_seeds.split(",")]
 
     if not shared_network:
@@ -496,7 +502,7 @@ def evaluate(args):
 
     # load the model if exist
     mappo.load(model_dir, train_mode=False, global_step=args.checkpoint)
-    rewards, _, ext_info = mappo.evaluation(env, video_dir, len(seeds), is_train=False)
+    rewards, _, ext_info = mappo.evaluation(env, video_dir, len(seeds), is_train=is_train)
     avg_speeds = ext_info["avg_speeds"]
     crash_count = ext_info["crash_count"]
     step_time = ext_info["step_time"]
