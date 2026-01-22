@@ -137,6 +137,7 @@ class Vehicle(object):
         self.position += v * dt
         self.heading += self.speed * np.sin(beta) / (self.LENGTH / 2) * dt
         self.speed += self.action['acceleration'] * dt
+        self.speed = max(0, self.speed)
         self.on_state_update()
 
     def clip_actions(self) -> None:
