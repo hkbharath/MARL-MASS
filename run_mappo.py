@@ -84,6 +84,11 @@ def parse_args():
         action="store_true",
         help="Render simulation and record video",
     )
+
+    parser.add_argument(
+        "--td", type=int, default=None, required=False, help="Traffic density for evaluation only"
+    )
+
     args = parser.parse_args()
     return args
 
@@ -427,6 +432,11 @@ def evaluate(args):
         "ENV_CONFIG", "agent_reward", fallback="default"
     )
 
+    # Override traffic density if specified
+    if args.td is not None:
+        env.config["traffic_density"] = args.td
+        traffic_density = args.td
+        
     # init wnadb logging
     project_name = config.get("PROJECT_CONFIG", "name", fallback=None) + "-evaluations"
     exp_name = config.get("PROJECT_CONFIG", "exp_name", fallback="default")
