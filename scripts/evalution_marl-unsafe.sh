@@ -77,7 +77,9 @@
 
 # python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Sep_25_16_13_44" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/fodp2g7o/ --checkpoint 12600 &
 
+
 # # TD 3 - Shared - Curriculum Learning - Mixed Traffic - Unsafe Reward
+
 # python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_02_01_13_50" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/6pfdqc8f --checkpoint 15400 &
 
 # python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_02_01_13_45" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/j7fqnmio --checkpoint 15400 &
@@ -89,25 +91,47 @@
 # python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Oct_02_01_13_31" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/kprftddx --checkpoint 15400 &
 
 ########### New trainings
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_13" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/vnq596ls --checkpoint 15400 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_13" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/vnq596ls --checkpoint 15400 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_18" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/czkddla9 --checkpoint 15400 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_18" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/czkddla9 --checkpoint 15400 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_23" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/klgb45o9 --checkpoint 15400 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_23" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/klgb45o9 --checkpoint 15400 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_28" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ls6pwdw4 --checkpoint 15400 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_28" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ls6pwdw4 --checkpoint 15400 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_33" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/toj7p7zc --checkpoint 15400 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_33" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/toj7p7zc --checkpoint 15400 &
+
+# # TD 3 - Shared - Curriculum Learning - Mixed Traffic - Unsafe Reward - IN TD2
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_13" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td2 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/vnq596ls --checkpoint 15400 --td 2 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_18" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td2 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/czkddla9 --checkpoint 15400 --td 2 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_23" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td2 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/klgb45o9 --checkpoint 15400 --td 2 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_28" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td2 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ls6pwdw4 --checkpoint 15400 --td 2 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_33" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td2 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/toj7p7zc --checkpoint 15400 --td 2 &
+
+# # TD 3 - Shared - Curriculum Learning - Mixed Traffic - Unsafe Reward - IN TD1
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_13" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td1 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/vnq596ls --checkpoint 15400 --td 1 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_18" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td1 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/czkddla9 --checkpoint 15400 --td 1 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_23" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td1 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/klgb45o9 --checkpoint 15400 --td 1 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_28" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td1 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ls6pwdw4 --checkpoint 15400 --td 1 &
+
+python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_17_17_55_33" --exp-name marl_cav_heading-t_headway-unsafe-td3-mixed-shared-cl_td1_td2:cp-19000-in:td1 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/toj7p7zc --checkpoint 15400 --td 1 &
 
 
 # TD 2 - Shared - Curriculum Learning - Mixed Traffic - Unsafe Reward
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_36" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/3dql8s1m --checkpoint 19000 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_36" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/3dql8s1m --checkpoint 19000 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_41" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ermuz82m --checkpoint 19000 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_41" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/ermuz82m --checkpoint 19000 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_46" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/hnryn2v1 --checkpoint 19000 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_46" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/hnryn2v1 --checkpoint 19000 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_51" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/di5vghr3 --checkpoint 19000 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_51" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/di5vghr3 --checkpoint 19000 &
 
-python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_56" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/e6m9itrr --checkpoint 19000 &
+# python run_mappo.py --opt eval --model-dir "/home/jovyan/work/cbf-cav-mixed/MARL-MASS/results/Jan_15_17_48_56" --exp-name marl_cav_heading-t_headway-unsafe-td2-mixed-shared:cp-19200 --src-url https://wandb.ai/ai-driver/Safe_mixed_MARL/runs/e6m9itrr --checkpoint 19000 &
