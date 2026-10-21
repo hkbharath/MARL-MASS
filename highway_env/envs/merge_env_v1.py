@@ -601,6 +601,72 @@ class MergeEnvLCHDV(MergeEnvLCMARL):
             min_headway = min(min_headway, headway_distance/(veh.velocity[0] if veh.velocity[0] > 1 else 1))
         return min_headway
     
+    def _make_vehicles(self, num_CAV=4, num_HDV=3) -> None:
+        """
+        Populate a road with several HDVs on the highway and on the merging lane.
+        """
+        road = self.road
+        self.controlled_vehicles = []
+
+        # print("CAVs:{0}, HDVs:{1}".format(num_CAV, num_HDV))
+        
+        # default spawn points
+        # spawn_points_s = [10, 50, 90, 130, 170, 210]
+        # spawn_points_m = [5, 45, 85, 125, 165, 205]
+
+        # mix 60 diff = td 1 [30-32 m/s?]
+        # spawn_points_s = [10, 70, 130, 190, 250]
+        # spawn_points_m = [5, 65, 130, 195, 255]
+
+        # mix 50 diff = td 2 [25-27 m/s]
+        spawn_points_s = [10, 60, 110, 160, 210, 260]
+        spawn_points_m = [5, 55, 105, 155, 205, 255]
+
+        # mix 30 diff = td 3 [15-17 m/s]
+        # spawn_points_s = [10, 40, 70, 100, 130, 160]
+        # spawn_points_m = [5, 35, 65, 105, 135, 165]
+        
+        # spawn_points_s = [np.random.randint(pt, pt+5) for pt in range(50, 110, 10)]
+        # spawn_points_m = [np.random.randint(pt, pt+6) for pt in range(50, 110, 10)]
+        
+        """Spawn points for HDV"""
+        num_s_h = num_HDV // 2 if num_HDV != 1 else np.random.choice(2)
+        num_m_h = num_HDV - num_s_h
+        # spawn point indexes on the straight road
+        spawn_point_s_h = np.random.choice(spawn_points_s, num_s_h, replace=False)
+        # spawn point indexes on the merging road
+        spawn_point_m_h = np.random.choice(spawn_points_m, num_m_h,
+                                           replace=False)
+        spawn_point_s_h = list(spawn_point_s_h)
+        spawn_point_m_h = list(spawn_point_m_h)
+
+        # initial speed with noise and location noise
+        initial_speed = np.random.rand(num_CAV + num_HDV) * 2 + 25  # range from [25, 27]
+        loc_noise = np.random.rand(num_CAV + num_HDV) * 8 - 4  # range from [-4, 4]
+        initial_speed = list(initial_speed)
+        loc_noise = list(loc_noise)
+
+        """spawn the HDV on the main road first"""
+        for _ in range(num_s_h):
+            hd_vehicle = self._make_hdv_vehicle(road=road,
+                                                position=road.network.get_lane(("a", "b", 0)).position(
+                                                    spawn_point_s_h.pop(0) + loc_noise.pop(0), 0),
+                                                speed=initial_speed.pop(0),
+                                                veh_id=len(road.vehicles))
+            road.vehicles.append(hd_vehicle)
+            
+
+        """spawn the rest HDV on the merging road"""
+        for _ in range(num_m_h):
+            hd_vehicle = self._make_hdv_vehicle(road=road,
+                                                position=road.network.get_lane(("j", "k", 0)).position(
+                                                    spawn_point_m_h.pop(0) + loc_noise.pop(0), 0),
+                                                speed=initial_speed.pop(0),
+                                                veh_id=len(road.vehicles))
+            road.vehicles.append(hd_vehicle)
+        
+        self._record_vehicle_count(n_merge=num_m_h, n_highway=num_s_h)
+    
     def step(self, action):
         """
         Perform an action and step the environment dynamics.
