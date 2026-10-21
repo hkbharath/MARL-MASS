@@ -26,7 +26,7 @@ class RoadObject(ABC):
         :param heading: the angle from positive direction of horizontal axis
         """
         self.road = road
-        self.position = np.array(position, dtype=np.float)
+        self.position = np.array(position, dtype=float)
         self.speed = speed
         self.heading = heading
         # store whether object is hit by any vehicle

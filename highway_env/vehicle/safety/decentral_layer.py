@@ -439,7 +439,7 @@ def safe_action_hss(
                 list(sf_oa.values()),
                 list(sf_oar.values()),
             ],
-            dtype=np.float,
+            dtype=float,
         ),
     )
 
@@ -673,7 +673,7 @@ def safe_action_mass(
                 list(sf_oa.values()),
                 list(sf_oar.values()),
             ],
-            dtype=np.float,
+            dtype=float,
         ),
     )
 

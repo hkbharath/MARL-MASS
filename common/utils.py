@@ -36,7 +36,7 @@ class AddBias(nn.Module):
 
 
 def index_to_one_hot(index, dim):
-    if isinstance(index, np.int) or isinstance(index, np.int64):
+    if isinstance(index, int) or isinstance(index, np.int64):
         one_hot = np.zeros(dim)
         one_hot[index] = 1.0
     else:
@@ -53,7 +53,7 @@ def to_tensor_var(x, use_cuda=True, dtype="float"):
         x = np.array(x, dtype=np.float64).tolist()
         return Variable(FloatTensor(x))
     elif dtype == "long":
-        x = np.array(x, dtype=np.long).tolist()
+        x = np.array(x, dtype=int).tolist()
         return Variable(LongTensor(x))
     elif dtype == "byte":
         x = np.array(x, dtype=np.byte).tolist()

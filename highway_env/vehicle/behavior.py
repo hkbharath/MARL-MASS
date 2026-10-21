@@ -494,14 +494,14 @@ class DefensiveVehicle(LinearVehicle):
                                2.0]
 
 class IDMVehicleHist(IDMVehicle):
-    def __init__(self, road: Road, position: Vector, heading: np.float = 0, speed: np.float = 0, target_lane_index: np.int = None, target_speed: np.float = None, route: Route = None, enable_lane_change: np.bool = True, timer: np.float = None):
+    def __init__(self, road: Road, position: Vector, heading: float = 0, speed: float = 0, target_lane_index: int = None, target_speed: float = None, route: Route = None, enable_lane_change: bool = True, timer: float = None):
         super().__init__(road, position, heading, speed, target_lane_index, target_speed, route, enable_lane_change, timer)
         self.t_step = 0
         self.store_profile = True
         self.state_hist = []
         self.action_hist = []
 
-    def step(self, dt: np.float):
+    def step(self, dt: float):
         super().step(dt)
         self.t_step += dt
         self.log_step()
