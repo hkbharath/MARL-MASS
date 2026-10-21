@@ -6,6 +6,7 @@ from torch.optim import Adam, RMSprop
 import time
 import numpy as np
 import os, logging
+import warnings
 from copy import deepcopy
 from marl.single_agent.Memory_common import OnPolicyReplayMemory
 from marl.single_agent.Model_common import ActorNetwork, CriticNetwork
@@ -16,6 +17,10 @@ from highway_env.vehicle.safe_controller import MDPLCVehicle
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from highway_env.envs.merge_env_v1 import MergeEnvLCMARL
+
+# pandas>=2 resets the warning registry on every column selection, so torch's deprecation warning for the
+# actor's log_softmax with implicit dim would be printed at every step instead of once.
+warnings.filterwarnings("ignore", message="Implicit dimension choice for log_softmax", category=UserWarning)
 
 class MAPPO:
     """
