@@ -38,6 +38,10 @@ class AbstractEnv(gym.Env):
     automatic_rendering_callback: Optional[Callable]
     metadata = {'render.modes': ['human', 'rgb_array']}
 
+    # gym>=0.22 makes np_random a property that lazily creates a np.random.Generator. Keep it a plain
+    # attribute (None, as in gym 0.14) so that Road falls back to np.random.RandomState().
+    np_random = None
+
     PERCEPTION_DISTANCE = 6.0 * MDPVehicle.SPEED_MAX
     """The maximum distance of any vehicle present in the observation [m]"""
 
