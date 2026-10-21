@@ -739,27 +739,39 @@ class MergeEnvLCHDV(MergeEnvLCMARL):
         return any(vehicle.crashed for vehicle in self.road.vehicles) \
                or self.steps >= self.config["duration"] * self.config["policy_frequency"]
     
+# gym>=0.22 wraps envs in OrderEnforcing/PassiveEnvChecker, which reject the reset()/step() API used here.
+# Disable them so that gym.make returns the bare env, as in gym 0.14.
 register(
     id='merge-v1',
     entry_point='highway_env.envs:MergeEnv',
+    order_enforce=False,
+    disable_env_checker=True,
 )
 
 register(
     id='merge-multi-agent-v0',
     entry_point='highway_env.envs:MergeEnvMARL',
+    order_enforce=False,
+    disable_env_checker=True,
 )
 
 register(
     id='merge-multi-agent-v1',
     entry_point='highway_env.envs:MergeEnvLCMARL',
+    order_enforce=False,
+    disable_env_checker=True,
 )
 
 register(
     id='merge-multi-agent-hdv-v1',
     entry_point='highway_env.envs:MergeEnvLCHDV',
+    order_enforce=False,
+    disable_env_checker=True,
 )
 
 register(
     id='merge-multi-agent-v05',
     entry_point='highway_env.envs:MergeEnvMARLSteerVel',
+    order_enforce=False,
+    disable_env_checker=True,
 )
